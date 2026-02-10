@@ -299,7 +299,7 @@ export function moveSection(
 
 /**
  * Swap two sections directly (for drag-and-drop).
- * Both sections must be at the same heading level.
+ * Preserves any content between non-adjacent sections.
  */
 export function swapSections(
   editor: Editor,
@@ -320,7 +320,17 @@ export function swapSections(
 
   const firstSlice = doc.slice(first.from, first.to);
   const secondSlice = doc.slice(second.from, second.to);
-  const swapped = secondSlice.content.append(firstSlice.content);
+
+  // Preserve any content between the two sections (non-adjacent case)
+  let swapped;
+  if (first.to < second.from) {
+    const middleSlice = doc.slice(first.to, second.from);
+    swapped = secondSlice.content
+      .append(middleSlice.content)
+      .append(firstSlice.content);
+  } else {
+    swapped = secondSlice.content.append(firstSlice.content);
+  }
 
   const { tr } = editor.state;
   tr.replace(first.from, second.to, new Slice(swapped, 0, 0));
@@ -328,17 +338,22 @@ export function swapSections(
 }
 
 /**
- * Extract section content as JSONContent (for trash).
+ * Extract section content as an array of node JSONs (for trash).
+ * Returns the heading node + all content nodes until the next same-or-higher level heading.
  */
 export function extractSectionContent(
   editor: Editor,
   headingIndex: number
-): JSONContent | null {
+): JSONContent[] | null {
   const range = findSectionRange(editor, headingIndex);
   if (!range) return null;
 
   const slice = editor.state.doc.slice(range.from, range.to);
-  return slice.toJSON() as unknown as JSONContent;
+  const nodes: JSONContent[] = [];
+  slice.content.forEach((node) => {
+    nodes.push(node.toJSON() as JSONContent);
+  });
+  return nodes.length > 0 ? nodes : null;
 }
 
 /**

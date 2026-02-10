@@ -21,7 +21,7 @@ export function useTrashSection() {
       projectId: string;
       title: string;
       level: number;
-      content: JSONContent;
+      content: JSONContent[] | JSONContent;
     }) =>
       apiFetch<SectionTrashItem>(`/api/projects/${params.projectId}/trash`, {
         method: "POST",

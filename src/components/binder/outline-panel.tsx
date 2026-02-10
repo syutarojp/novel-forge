@@ -20,7 +20,9 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  DragOverlay,
   type DragEndEvent,
+  type DragStartEvent,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -29,7 +31,6 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
-import { useManuscriptContent } from "@/hooks/use-manuscript";
 import {
   parseOutline,
   findHeadingPMPosition,
@@ -67,17 +68,25 @@ interface OutlinePanelProps {
 }
 
 // ============================================================
-// H1 item (non-sortable, no actions)
+// Flat item type for rendering
 // ============================================================
 
-function H1Item({
+interface FlatVisibleItem {
+  item: OutlineItem;
+  siblings: OutlineItem[];
+}
+
+// ============================================================
+// H1 row (non-sortable, no actions, flat)
+// ============================================================
+
+function H1Row({
   item,
   isActive,
   hasChildren,
   isCollapsed,
   onToggleCollapse,
   onScrollTo,
-  children,
 }: {
   item: OutlineItem;
   isActive: boolean;
@@ -85,56 +94,51 @@ function H1Item({
   isCollapsed: boolean;
   onToggleCollapse: (id: string) => void;
   onScrollTo: (item: OutlineItem) => void;
-  children?: React.ReactNode;
 }) {
   return (
-    <div>
-      <div
-        className={cn(
-          "flex items-center gap-1 rounded-sm px-2 py-1 text-sm cursor-pointer select-none",
-          isActive
-            ? "border-l-2 border-primary bg-accent/50 text-foreground"
-            : "border-l-2 border-transparent hover:bg-accent/30"
-        )}
-        onClick={() => onScrollTo(item)}
-      >
-        {hasChildren ? (
-          <button
-            className="flex h-4 w-4 items-center justify-center shrink-0"
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleCollapse(item.id);
-            }}
-          >
-            {isCollapsed ? (
-              <ChevronRight className="h-3 w-3" />
-            ) : (
-              <ChevronDown className="h-3 w-3" />
-            )}
-          </button>
-        ) : (
-          <span className="w-4 shrink-0" />
-        )}
-        <BookOpen className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-        <span className="flex-1 min-w-0 truncate font-bold">{item.title}</span>
-        {item.wordCount > 0 && (
-          <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">
-            {item.wordCount.toLocaleString()}
-          </span>
-        )}
-      </div>
-      {hasChildren && !isCollapsed && children}
+    <div
+      className={cn(
+        "flex items-center gap-1 rounded-sm px-2 py-1 text-sm cursor-pointer select-none",
+        isActive
+          ? "border-l-2 border-primary bg-accent/50 text-foreground"
+          : "border-l-2 border-transparent hover:bg-accent/30"
+      )}
+      onClick={() => onScrollTo(item)}
+    >
+      {hasChildren ? (
+        <button
+          className="flex h-4 w-4 items-center justify-center shrink-0"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleCollapse(item.id);
+          }}
+        >
+          {isCollapsed ? (
+            <ChevronRight className="h-3 w-3" />
+          ) : (
+            <ChevronDown className="h-3 w-3" />
+          )}
+        </button>
+      ) : (
+        <span className="w-4 shrink-0" />
+      )}
+      <BookOpen className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+      <span className="flex-1 min-w-0 truncate font-bold">{item.title}</span>
+      {item.wordCount > 0 && (
+        <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">
+          {item.wordCount.toLocaleString()}
+        </span>
+      )}
     </div>
   );
 }
 
 // ============================================================
-// Sortable section item (H2-H4)
+// Sortable section row (H2-H4, flat rendering with indent)
 // ============================================================
 
-function SectionItem({
+function SectionRow({
   item,
-  depth,
   isActive,
   hasChildren,
   isCollapsed,
@@ -147,10 +151,8 @@ function SectionItem({
   onLevelUp,
   onLevelDown,
   onDelete,
-  children,
 }: {
   item: OutlineItem;
-  depth: number;
   isActive: boolean;
   hasChildren: boolean;
   isCollapsed: boolean;
@@ -163,7 +165,6 @@ function SectionItem({
   onLevelUp: (idx: number) => void;
   onLevelDown: (idx: number) => void;
   onDelete: (item: OutlineItem) => void;
-  children?: React.ReactNode;
 }) {
   const {
     attributes,
@@ -179,7 +180,8 @@ function SectionItem({
     transition,
   };
 
-  const indent = depth * 16;
+  // Indent based on heading level: H2=16px, H3=32px, H4=48px
+  const indent = (item.level - 1) * 16;
 
   return (
     <div ref={setNodeRef} style={style}>
@@ -280,7 +282,6 @@ function SectionItem({
           </button>
         </div>
       </div>
-      {hasChildren && !isCollapsed && children}
     </div>
   );
 }
@@ -332,7 +333,6 @@ function TrashItem({
 // ============================================================
 
 export function OutlinePanel({ projectId, editor }: OutlinePanelProps) {
-  const { data: manuscript } = useManuscriptContent(projectId);
   const { data: trashItems = [] } = useTrashItems(projectId);
   const trashSection = useTrashSection();
   const restoreSection = useRestoreSection();
@@ -344,6 +344,7 @@ export function OutlinePanel({ projectId, editor }: OutlinePanelProps) {
   const [deleteTarget, setDeleteTarget] = useState<OutlineItem | null>(null);
   const [skipConfirm, setSkipConfirm] = useState(false);
   const [docVersion, setDocVersion] = useState(0);
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
 
   useEffect(() => {
     const stored = localStorage.getItem(SKIP_CONFIRM_KEY);
@@ -355,38 +356,18 @@ export function OutlinePanel({ projectId, editor }: OutlinePanelProps) {
     if (!editor) return;
     const onUpdate = () => setDocVersion((v) => v + 1);
     editor.on("update", onUpdate);
-    // Also bump when editor first becomes available
     setDocVersion((v) => v + 1);
     return () => { editor.off("update", onUpdate); };
   }, [editor]);
 
+  // Parse outline from editor's live state
   const outline = useMemo(() => {
-    // Parse from editor's live state for immediate updates
-    if (editor) {
-      return parseOutline(editor.getJSON());
-    }
-    // Fallback to API data when editor isn't ready
-    if (manuscript?.content) {
-      return parseOutline(manuscript.content);
-    }
+    if (editor) return parseOutline(editor.getJSON());
     return [];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editor, docVersion, manuscript?.content]);
+  }, [editor, docVersion]);
 
-  // Flatten for DnD ids (H2+ only)
-  const sortableIds = useMemo(() => {
-    const ids: string[] = [];
-    function walk(items: OutlineItem[]) {
-      for (const item of items) {
-        if (item.level > 1) ids.push(item.id);
-        if (item.children.length > 0) walk(item.children);
-      }
-    }
-    walk(outline);
-    return ids;
-  }, [outline]);
-
-  // Flat lookup for DnD
+  // Flat lookup map (all items including nested)
   const flatMap = useMemo(() => {
     const map = new Map<string, OutlineItem>();
     function walk(items: OutlineItem[]) {
@@ -398,6 +379,28 @@ export function OutlinePanel({ projectId, editor }: OutlinePanelProps) {
     walk(outline);
     return map;
   }, [outline]);
+
+  // Build flat visible list (respecting collapse state)
+  // All items at the same DOM level — CSS indent handles visual nesting
+  const visibleItems = useMemo(() => {
+    const result: FlatVisibleItem[] = [];
+    function walk(items: OutlineItem[]) {
+      for (const item of items) {
+        result.push({ item, siblings: items });
+        if (item.children.length > 0 && !(collapsed[item.id] ?? false)) {
+          walk(item.children);
+        }
+      }
+    }
+    walk(outline);
+    return result;
+  }, [outline, collapsed]);
+
+  // Sortable IDs: only H2+ visible items
+  const sortableIds = useMemo(
+    () => visibleItems.filter((v) => v.item.level > 1).map((v) => v.item.id),
+    [visibleItems]
+  );
 
   // Track cursor → active heading (debounced via RAF)
   useEffect(() => {
@@ -442,7 +445,7 @@ export function OutlinePanel({ projectId, editor }: OutlinePanelProps) {
       if (!editor) return;
       const pos = findHeadingPMPosition(editor, item.headingIndex);
       if (pos !== null) {
-        editor.chain().setTextSelection(pos).scrollIntoView().run();
+        editor.chain().setTextSelection(pos + 1).scrollIntoView().run();
       }
     },
     [editor]
@@ -479,7 +482,7 @@ export function OutlinePanel({ projectId, editor }: OutlinePanelProps) {
       if (!editor) return;
       const content = extractSectionContent(editor, item.headingIndex);
       if (!content) return;
-      trashSection.mutate({ projectId, title: item.title, level: item.level, content });
+      trashSection.mutate({ projectId, title: item.title, level: item.level, content: content as never });
       deleteSection(editor, item.headingIndex);
     },
     [editor, projectId, trashSection]
@@ -511,7 +514,12 @@ export function OutlinePanel({ projectId, editor }: OutlinePanelProps) {
           onSuccess: (data) => {
             if (data.content) {
               const endPos = editor.state.doc.content.size;
-              editor.chain().insertContentAt(endPos, data.content).run();
+              // Handle both new format (array of nodes) and old Slice JSON format
+              let content = data.content;
+              if (!Array.isArray(content) && typeof content === "object" && "content" in content) {
+                content = (content as { content: unknown[] }).content;
+              }
+              editor.chain().insertContentAt(endPos, content as never).run();
             }
           },
         }
@@ -525,8 +533,13 @@ export function OutlinePanel({ projectId, editor }: OutlinePanelProps) {
     [projectId, deleteTrashItem]
   );
 
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    setActiveDragId(event.active.id as string);
+  }, []);
+
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
+      setActiveDragId(null);
       if (!editor) return;
       const { active, over } = event;
       if (!over || active.id === over.id) return;
@@ -540,6 +553,10 @@ export function OutlinePanel({ projectId, editor }: OutlinePanelProps) {
     [editor, flatMap]
   );
 
+  const handleDragCancel = useCallback(() => {
+    setActiveDragId(null);
+  }, []);
+
   // Sibling checks
   const hasSiblingAbove = (item: OutlineItem, siblings: OutlineItem[]) => {
     const idx = siblings.findIndex((s) => s.id === item.id);
@@ -550,50 +567,7 @@ export function OutlinePanel({ projectId, editor }: OutlinePanelProps) {
     return idx >= 0 && idx < siblings.length - 1;
   };
 
-  // Recursive render
-  function renderItem(item: OutlineItem, depth: number, siblings: OutlineItem[]) {
-    const isCollapsed_ = collapsed[item.id] ?? false;
-    const hasChildren = item.children.length > 0;
-    const isActive = activeHeadingId === item.id;
-
-    if (item.level === 1) {
-      return (
-        <H1Item
-          key={item.id}
-          item={item}
-          isActive={isActive}
-          hasChildren={hasChildren}
-          isCollapsed={isCollapsed_}
-          onToggleCollapse={toggleCollapse}
-          onScrollTo={scrollToHeading}
-        >
-          {item.children.map((child) => renderItem(child, depth + 1, item.children))}
-        </H1Item>
-      );
-    }
-
-    return (
-      <SectionItem
-        key={item.id}
-        item={item}
-        depth={depth}
-        isActive={isActive}
-        hasChildren={hasChildren}
-        isCollapsed={isCollapsed_}
-        canMoveUp={hasSiblingAbove(item, siblings)}
-        canMoveDown={hasSiblingBelow(item, siblings)}
-        onToggleCollapse={toggleCollapse}
-        onScrollTo={scrollToHeading}
-        onMoveUp={handleMoveUp}
-        onMoveDown={handleMoveDown}
-        onLevelUp={handleLevelUp}
-        onLevelDown={handleLevelDown}
-        onDelete={handleDeleteRequest}
-      >
-        {item.children.map((child) => renderItem(child, depth + 1, item.children))}
-      </SectionItem>
-    );
-  }
+  const activeDragItem = activeDragId ? flatMap.get(activeDragId) : null;
 
   if (outline.length === 0) {
     return (
@@ -612,11 +586,59 @@ export function OutlinePanel({ projectId, editor }: OutlinePanelProps) {
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
           >
             <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
-              {outline.map((item) => renderItem(item, 0, outline))}
+              {visibleItems.map(({ item, siblings }) => {
+                const isCollapsed_ = collapsed[item.id] ?? false;
+                const hasChildren = item.children.length > 0;
+                const isActive = activeHeadingId === item.id;
+
+                if (item.level === 1) {
+                  return (
+                    <H1Row
+                      key={item.id}
+                      item={item}
+                      isActive={isActive}
+                      hasChildren={hasChildren}
+                      isCollapsed={isCollapsed_}
+                      onToggleCollapse={toggleCollapse}
+                      onScrollTo={scrollToHeading}
+                    />
+                  );
+                }
+
+                return (
+                  <SectionRow
+                    key={item.id}
+                    item={item}
+                    isActive={isActive}
+                    hasChildren={hasChildren}
+                    isCollapsed={isCollapsed_}
+                    canMoveUp={hasSiblingAbove(item, siblings)}
+                    canMoveDown={hasSiblingBelow(item, siblings)}
+                    onToggleCollapse={toggleCollapse}
+                    onScrollTo={scrollToHeading}
+                    onMoveUp={handleMoveUp}
+                    onMoveDown={handleMoveDown}
+                    onLevelUp={handleLevelUp}
+                    onLevelDown={handleLevelDown}
+                    onDelete={handleDeleteRequest}
+                  />
+                );
+              })}
             </SortableContext>
+
+            <DragOverlay>
+              {activeDragItem && (
+                <div className="flex items-center gap-1 rounded-sm bg-accent px-3 py-1 text-sm shadow-md border">
+                  <GripVertical className="h-3 w-3 text-muted-foreground" />
+                  <span className="truncate">{activeDragItem.title}</span>
+                </div>
+              )}
+            </DragOverlay>
           </DndContext>
         </div>
       </ScrollArea>
