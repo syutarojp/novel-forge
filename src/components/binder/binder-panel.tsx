@@ -5,8 +5,10 @@ import { useBinderItems, useCreateBinderItem } from "@/hooks/use-binder";
 import { useProject } from "@/hooks/use-projects";
 import { useUIStore } from "@/stores/ui-store";
 import { BinderTree } from "./binder-tree";
+import { CodexBrowserPanel } from "@/components/codex/codex-browser-panel";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FilePlus, FolderPlus } from "lucide-react";
 import type { BinderItem } from "@/types";
 
@@ -40,13 +42,13 @@ export function BinderPanel({ projectId }: BinderPanelProps) {
   const { data: items = [] } = useBinderItems(projectId);
   const { data: project } = useProject(projectId);
   const createItem = useCreateBinderItem();
-  const selectedItemId = useUIStore((s) => s.selectedItemId);
   const totalWordCount = useUIStore((s) => s.totalWordCount);
+  const binderTab = useUIStore((s) => s.binderTab);
+  const setBinderTab = useUIStore((s) => s.setBinderTab);
 
   const treeData = useMemo(() => buildTree(items, null), [items]);
 
   const handleAddScene = () => {
-    // Find the manuscript folder or first folder
     const manuscriptFolder = items.find(
       (item) => item.parentId === null && item.type === "folder" && item.title === "原稿"
     );
@@ -69,7 +71,6 @@ export function BinderPanel({ projectId }: BinderPanelProps) {
     const rootItems = items
       .filter((item) => item.parentId === null && item.type !== "trash")
       .sort((a, b) => (a.sortOrder < b.sortOrder ? -1 : 1));
-    // Insert before trash
     const trashItem = items.find((item) => item.type === "trash" && item.parentId === null);
     const lastNonTrash = rootItems.length > 0 ? rootItems[rootItems.length - 1] : null;
 
@@ -84,27 +85,55 @@ export function BinderPanel({ projectId }: BinderPanelProps) {
 
   return (
     <div className="flex h-full flex-col border-r bg-muted/30">
-      {/* Header with project name and add buttons */}
+      {/* Header with project name and action buttons */}
       <div className="flex items-center justify-between border-b px-3 py-2">
         <span className="text-sm font-semibold truncate">{project?.title ?? "バインダー"}</span>
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={handleAddScene}>
-            <FilePlus className="h-3.5 w-3.5" />
-            シーン
-          </Button>
-          <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={handleAddFolder}>
-            <FolderPlus className="h-3.5 w-3.5" />
-            フォルダ
-          </Button>
+        {binderTab === "manuscript" && (
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={handleAddScene}>
+              <FilePlus className="h-3.5 w-3.5" />
+              シーン
+            </Button>
+            <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={handleAddFolder}>
+              <FolderPlus className="h-3.5 w-3.5" />
+              フォルダ
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Tab switcher */}
+      <Tabs
+        value={binderTab}
+        onValueChange={(v) => setBinderTab(v as "manuscript" | "codex")}
+        className="flex flex-1 flex-col"
+      >
+        <TabsList className="mx-2 mt-2 grid w-auto grid-cols-2">
+          <TabsTrigger value="manuscript" className="text-xs">
+            原稿
+          </TabsTrigger>
+          <TabsTrigger value="codex" className="text-xs">
+            世界観
+          </TabsTrigger>
+        </TabsList>
+
+        <div className="flex-1 min-h-0">
+          {binderTab === "manuscript" ? (
+            <ScrollArea className="h-full">
+              <BinderTree data={treeData} projectId={projectId} />
+            </ScrollArea>
+          ) : (
+            <CodexBrowserPanel projectId={projectId} />
+          )}
         </div>
-      </div>
-      <ScrollArea className="flex-1">
-        <BinderTree data={treeData} projectId={projectId} />
-      </ScrollArea>
-      {/* Footer: total word count */}
-      <div className="border-t px-3 py-1.5 text-xs text-muted-foreground">
-        合計 {totalWordCount.toLocaleString()} 文字
-      </div>
+      </Tabs>
+
+      {/* Footer: total word count (manuscript tab only) */}
+      {binderTab === "manuscript" && (
+        <div className="border-t px-3 py-1.5 text-xs text-muted-foreground">
+          合計 {totalWordCount.toLocaleString()} 文字
+        </div>
+      )}
     </div>
   );
 }

@@ -3,20 +3,45 @@
 import { useUIStore } from "@/stores/ui-store";
 import { useBinderItem, useBinderItems } from "@/hooks/use-binder";
 import { TipTapEditor } from "./tiptap-editor";
-import { FileText, PenLine } from "lucide-react";
+import { CodexEntryEditor } from "@/components/codex/codex-entry-editor";
+import { FileText, PenLine, Globe } from "lucide-react";
 
 interface CenterPanelProps {
   projectId: string;
 }
 
 export function CenterPanel({ projectId }: CenterPanelProps) {
+  const selectionType = useUIStore((s) => s.selectionType);
   const selectedItemId = useUIStore((s) => s.selectedItemId);
+  const selectedCodexEntryId = useUIStore((s) => s.selectedCodexEntryId);
   const setSelectedItemId = useUIStore((s) => s.setSelectedItemId);
   const mode = useUIStore((s) => s.mode);
   const { data: selectedItem } = useBinderItem(selectedItemId);
   const { data: allItems = [] } = useBinderItems(projectId);
 
-  // If no item selected, show placeholder
+  // Codex entry selected → show codex editor
+  if (selectionType === "codex") {
+    if (!selectedCodexEntryId) {
+      return (
+        <div className="flex h-full flex-col items-center justify-center gap-6 text-muted-foreground p-8">
+          <Globe className="h-16 w-16 opacity-10" />
+          <div className="text-center space-y-2">
+            <p className="text-lg font-medium">エントリが選択されていません</p>
+            <p className="text-sm">左の世界観パネルからエントリを選択してください</p>
+          </div>
+        </div>
+      );
+    }
+    return (
+      <CodexEntryEditor
+        key={selectedCodexEntryId}
+        entryId={selectedCodexEntryId}
+        projectId={projectId}
+      />
+    );
+  }
+
+  // Binder item: no selection
   if (!selectedItemId || !selectedItem) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-6 text-muted-foreground p-8">

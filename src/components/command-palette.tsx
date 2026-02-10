@@ -3,6 +3,8 @@
 import { useEffect } from "react";
 import { useUIStore } from "@/stores/ui-store";
 import { useBinderItems } from "@/hooks/use-binder";
+import { useCodexEntries } from "@/hooks/use-codex";
+import { getCodexTypeDef } from "@/lib/codex-utils";
 import {
   CommandDialog,
   CommandInput,
@@ -45,6 +47,8 @@ export function CommandPalette({
     commandPaletteOpen,
     setCommandPaletteOpen,
     setSelectedItemId,
+    setSelectedCodexEntryId,
+    setBinderTab,
     toggleBinder,
     toggleInspector,
     toggleFocusMode,
@@ -52,6 +56,7 @@ export function CommandPalette({
   } = useUIStore();
 
   const { data: items = [] } = useBinderItems(projectId);
+  const { data: codexEntries = [] } = useCodexEntries(projectId);
   const scenes = items.filter((item) => item.type === "scene");
 
   // Register global keyboard shortcut
@@ -79,18 +84,47 @@ export function CommandPalette({
         <CommandEmpty>結果が見つかりません</CommandEmpty>
 
         {scenes.length > 0 && (
-          <CommandGroup heading="移動">
+          <CommandGroup heading="移動 — シーン">
             {scenes.map((scene) => (
               <CommandItem
                 key={scene.id}
                 onSelect={() =>
-                  closeAndExecute(() => setSelectedItemId(scene.id))
+                  closeAndExecute(() => {
+                    setBinderTab("manuscript");
+                    setSelectedItemId(scene.id);
+                  })
                 }
               >
                 <FileText className="mr-2 h-4 w-4" />
                 <span>{scene.title}</span>
               </CommandItem>
             ))}
+          </CommandGroup>
+        )}
+
+        {codexEntries.length > 0 && (
+          <CommandGroup heading="移動 — 世界観">
+            {codexEntries.map((entry) => {
+              const typeDef = getCodexTypeDef(entry.type);
+              const Icon = typeDef.icon;
+              return (
+                <CommandItem
+                  key={entry.id}
+                  onSelect={() =>
+                    closeAndExecute(() => {
+                      setBinderTab("codex");
+                      setSelectedCodexEntryId(entry.id);
+                    })
+                  }
+                >
+                  <Icon className="mr-2 h-4 w-4" />
+                  <span>{entry.name}</span>
+                  <span className="ml-auto text-xs text-muted-foreground">
+                    {typeDef.label}
+                  </span>
+                </CommandItem>
+              );
+            })}
           </CommandGroup>
         )}
 

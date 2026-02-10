@@ -11,9 +11,20 @@ interface UIState {
   activeProjectId: string | null;
   setActiveProjectId: (id: string | null) => void;
 
+  // Binder tab (manuscript vs codex)
+  binderTab: "manuscript" | "codex";
+  setBinderTab: (tab: "manuscript" | "codex") => void;
+
+  // Selection type (which panel owns the selection)
+  selectionType: "binder" | "codex";
+
   // Selected binder item
   selectedItemId: string | null;
   setSelectedItemId: (id: string | null) => void;
+
+  // Selected codex entry
+  selectedCodexEntryId: string | null;
+  setSelectedCodexEntryId: (id: string | null) => void;
 
   // Multi-selection for binder
   selectedItemIds: string[];
@@ -34,12 +45,6 @@ interface UIState {
   commandPaletteOpen: boolean;
   setCommandPaletteOpen: (open: boolean) => void;
   toggleCommandPalette: () => void;
-
-  // Codex drawer
-  codexOpen: boolean;
-  codexEntryId: string | null;
-  openCodex: (entryId?: string) => void;
-  closeCodex: () => void;
 
   // Save status
   saveStatus: "saved" | "saving" | "unsaved";
@@ -69,8 +74,17 @@ export const useUIStore = create<UIState>((set) => ({
   activeProjectId: null,
   setActiveProjectId: (id) => set({ activeProjectId: id }),
 
+  binderTab: "manuscript",
+  setBinderTab: (tab) => set({ binderTab: tab }),
+
+  selectionType: "binder",
+
   selectedItemId: null,
-  setSelectedItemId: (id) => set({ selectedItemId: id, selectedItemIds: id ? [id] : [] }),
+  setSelectedItemId: (id) =>
+    set({ selectedItemId: id, selectedItemIds: id ? [id] : [], selectionType: "binder" }),
+
+  selectedCodexEntryId: null,
+  setSelectedCodexEntryId: (id) => set({ selectedCodexEntryId: id, selectionType: "codex" }),
 
   selectedItemIds: [],
   setSelectedItemIds: (ids) => set({ selectedItemIds: ids }),
@@ -79,7 +93,7 @@ export const useUIStore = create<UIState>((set) => ({
       const ids = state.selectedItemIds.includes(id)
         ? state.selectedItemIds.filter((i) => i !== id)
         : [...state.selectedItemIds, id];
-      return { selectedItemIds: ids, selectedItemId: ids[ids.length - 1] ?? null };
+      return { selectedItemIds: ids, selectedItemId: ids[ids.length - 1] ?? null, selectionType: "binder" };
     }),
 
   binderVisible: true,
@@ -101,11 +115,6 @@ export const useUIStore = create<UIState>((set) => ({
   commandPaletteOpen: false,
   setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
   toggleCommandPalette: () => set((s) => ({ commandPaletteOpen: !s.commandPaletteOpen })),
-
-  codexOpen: false,
-  codexEntryId: null,
-  openCodex: (entryId) => set({ codexOpen: true, codexEntryId: entryId ?? null }),
-  closeCodex: () => set({ codexOpen: false, codexEntryId: null }),
 
   saveStatus: "saved",
   setSaveStatus: (status) => set({ saveStatus: status }),

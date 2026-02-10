@@ -3,13 +3,23 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useUIStore } from "@/stores/ui-store";
 import { useBinderItem, useUpdateBinderItem } from "@/hooks/use-binder";
+import {
+  useCodexEntry,
+  useCodexEntries,
+  useCodexRelations,
+  useCreateCodexRelation,
+  useDeleteCodexRelation,
+} from "@/hooks/use-codex";
 import { useProject } from "@/hooks/use-projects";
+import { getCodexTypeDef } from "@/lib/codex-utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -17,18 +27,233 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { FileText, StickyNote, Tags, Info, SpellCheck } from "lucide-react";
+import {
+  FileText,
+  StickyNote,
+  Tags,
+  Info,
+  SpellCheck,
+  Link2,
+  Calendar,
+  Plus,
+  X,
+} from "lucide-react";
 import { ProofreadingTab } from "./proofreading-tab";
 
 interface InspectorPanelProps {
   projectId: string;
 }
 
-// Note: We need the switch component. Import it - if it doesn't exist we'll handle it.
-// Actually let's use a simple checkbox approach or just use a basic toggle.
-
 export function InspectorPanel({ projectId }: InspectorPanelProps) {
+  const selectionType = useUIStore((s) => s.selectionType);
   const selectedItemId = useUIStore((s) => s.selectedItemId);
+  const selectedCodexEntryId = useUIStore((s) => s.selectedCodexEntryId);
+
+  if (selectionType === "codex" && selectedCodexEntryId) {
+    return <CodexInspector entryId={selectedCodexEntryId} projectId={projectId} />;
+  }
+
+  return <BinderInspector selectedItemId={selectedItemId} projectId={projectId} />;
+}
+
+// === Codex Inspector ===
+
+function CodexInspector({ entryId, projectId }: { entryId: string; projectId: string }) {
+  const { data: entry } = useCodexEntry(entryId);
+  const { data: allEntries = [] } = useCodexEntries(projectId);
+  const { data: relations = [] } = useCodexRelations(projectId);
+  const createRelation = useCreateCodexRelation();
+  const deleteRelation = useDeleteCodexRelation();
+  const setSelectedCodexEntryId = useUIStore((s) => s.setSelectedCodexEntryId);
+
+  const [relationTarget, setRelationTarget] = useState("");
+  const [relationLabel, setRelationLabel] = useState("");
+
+  if (!entry) {
+    return <EmptyInspector />;
+  }
+
+  const entryRelations = relations.filter(
+    (r) => r.sourceId === entryId || r.targetId === entryId
+  );
+
+  const handleAddRelation = () => {
+    if (!relationTarget || !relationLabel.trim()) return;
+    createRelation.mutate({
+      projectId,
+      sourceId: entryId,
+      targetId: relationTarget,
+      label: relationLabel.trim(),
+    });
+    setRelationTarget("");
+    setRelationLabel("");
+  };
+
+  const typeDef = getCodexTypeDef(entry.type);
+
+  return (
+    <div className="flex h-full flex-col border-l bg-muted/30">
+      <div className="flex items-center border-b px-3 py-2">
+        <span className="text-xs font-semibold uppercase text-muted-foreground">
+          インスペクター
+        </span>
+      </div>
+      <Tabs defaultValue="relations" className="flex flex-1 flex-col">
+        <TabsList className="mx-2 mt-2 grid w-auto grid-cols-2">
+          <TabsTrigger value="relations" className="text-[11px] gap-1">
+            <Link2 className="h-3 w-3" />
+            関連
+          </TabsTrigger>
+          <TabsTrigger value="meta" className="text-[11px] gap-1">
+            <Calendar className="h-3 w-3" />
+            メタ
+          </TabsTrigger>
+        </TabsList>
+
+        <ScrollArea className="flex-1">
+          <TabsContent value="relations" className="px-3 pb-3">
+            <div className="space-y-3">
+              {entryRelations.length > 0 ? (
+                <div className="space-y-1.5">
+                  {entryRelations.map((rel) => {
+                    const otherId =
+                      rel.sourceId === entryId ? rel.targetId : rel.sourceId;
+                    const other = allEntries.find((e) => e.id === otherId);
+                    if (!other) return null;
+                    const otherType = getCodexTypeDef(other.type);
+                    const OtherIcon = otherType.icon;
+                    return (
+                      <div
+                        key={rel.id}
+                        className="flex items-center gap-2 text-sm rounded-md border px-2 py-1.5"
+                      >
+                        <OtherIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                        <button
+                          className="truncate hover:underline text-left flex-1"
+                          onClick={() => setSelectedCodexEntryId(otherId)}
+                        >
+                          {other.name}
+                        </button>
+                        <span className="text-xs text-muted-foreground shrink-0">
+                          {rel.label}
+                        </span>
+                        <button
+                          onClick={() =>
+                            deleteRelation.mutate({ id: rel.id, projectId })
+                          }
+                          className="text-muted-foreground hover:text-destructive shrink-0"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground py-2">
+                  関連エントリがありません
+                </p>
+              )}
+
+              <Separator />
+
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">関連を追加</Label>
+                <Select value={relationTarget} onValueChange={setRelationTarget}>
+                  <SelectTrigger className="text-xs">
+                    <SelectValue placeholder="エントリを選択..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allEntries
+                      .filter((e) => e.id !== entryId)
+                      .map((e) => {
+                        const t = getCodexTypeDef(e.type);
+                        const TIcon = t.icon;
+                        return (
+                          <SelectItem key={e.id} value={e.id}>
+                            <div className="flex items-center gap-2">
+                              <TIcon className="h-3.5 w-3.5" />
+                              {e.name}
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
+                  </SelectContent>
+                </Select>
+                <Input
+                  value={relationLabel}
+                  onChange={(e) => setRelationLabel(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleAddRelation()}
+                  placeholder="関係ラベル (例: 友人、所在地)"
+                  className="text-xs"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full gap-1 text-xs"
+                  onClick={handleAddRelation}
+                  disabled={!relationTarget || !relationLabel.trim()}
+                >
+                  <Plus className="h-3 w-3" />
+                  追加
+                </Button>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="meta" className="px-3 pb-3">
+            <div className="space-y-3">
+              <div>
+                <Label className="text-xs text-muted-foreground">種類</Label>
+                <Badge variant="outline" className="mt-1 gap-1">
+                  {React.createElement(typeDef.icon, { className: "h-3 w-3" })}
+                  {typeDef.label}
+                </Badge>
+              </div>
+              <Separator />
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>作成日</span>
+                <span>{new Date(entry.createdAt).toLocaleDateString()}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>更新日</span>
+                <span>{new Date(entry.updatedAt).toLocaleDateString()}</span>
+              </div>
+              {entry.tags.length > 0 && (
+                <>
+                  <Separator />
+                  <div>
+                    <Label className="text-xs text-muted-foreground">タグ</Label>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {entry.tags.map((tag) => (
+                        <Badge key={tag} variant="secondary" className="text-[10px]">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </TabsContent>
+        </ScrollArea>
+      </Tabs>
+    </div>
+  );
+}
+
+// Need React import for createElement in meta tab
+import React from "react";
+
+// === Binder Inspector (original) ===
+
+function BinderInspector({
+  selectedItemId,
+  projectId,
+}: {
+  selectedItemId: string | null;
+  projectId: string;
+}) {
   const { data: item } = useBinderItem(selectedItemId);
   const { data: project } = useProject(projectId);
   const updateItem = useUpdateBinderItem();
@@ -38,7 +263,6 @@ export function InspectorPanel({ projectId }: InspectorPanelProps) {
   const synopsisTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const notesTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Sync local state with item data
   useEffect(() => {
     if (item) {
       setSynopsis(item.synopsis || "");
@@ -114,22 +338,7 @@ export function InspectorPanel({ projectId }: InspectorPanelProps) {
   }, [selectedItemId, projectId, item, updateItem]);
 
   if (!selectedItemId || !item) {
-    return (
-      <div className="flex h-full flex-col border-l bg-muted/30">
-        <div className="flex items-center border-b px-3 py-2">
-          <span className="text-xs font-semibold uppercase text-muted-foreground">
-            インスペクター
-          </span>
-        </div>
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 p-4 text-center text-muted-foreground">
-          <Info className="h-8 w-8 opacity-20" />
-          <div className="space-y-1">
-            <p className="text-sm font-medium">アイテムを選択</p>
-            <p className="text-xs">バインダーからシーンやフォルダを選択すると、詳細情報をここに表示します</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <EmptyInspector />;
   }
 
   const labels = project?.settings.labels ?? [];
@@ -296,6 +505,29 @@ export function InspectorPanel({ projectId }: InspectorPanelProps) {
           </TabsContent>
         </ScrollArea>
       </Tabs>
+    </div>
+  );
+}
+
+// === Empty state ===
+
+function EmptyInspector() {
+  return (
+    <div className="flex h-full flex-col border-l bg-muted/30">
+      <div className="flex items-center border-b px-3 py-2">
+        <span className="text-xs font-semibold uppercase text-muted-foreground">
+          インスペクター
+        </span>
+      </div>
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 p-4 text-center text-muted-foreground">
+        <Info className="h-8 w-8 opacity-20" />
+        <div className="space-y-1">
+          <p className="text-sm font-medium">アイテムを選択</p>
+          <p className="text-xs">
+            バインダーからシーンやフォルダを選択すると、詳細情報をここに表示します
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
