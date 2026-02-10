@@ -17,7 +17,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { FileText, StickyNote, Tags, Info } from "lucide-react";
+import { FileText, StickyNote, Tags, Info, SpellCheck } from "lucide-react";
+import { ProofreadingTab } from "./proofreading-tab";
 
 interface InspectorPanelProps {
   projectId: string;
@@ -138,7 +139,7 @@ export function InspectorPanel({ projectId }: InspectorPanelProps) {
         </span>
       </div>
       <Tabs defaultValue="synopsis" className="flex flex-1 flex-col">
-        <TabsList className="mx-2 mt-2 grid w-auto grid-cols-3">
+        <TabsList className="mx-2 mt-2 grid w-auto grid-cols-4">
           <TabsTrigger value="synopsis" className="text-xs">
             あらすじ
           </TabsTrigger>
@@ -147,6 +148,9 @@ export function InspectorPanel({ projectId }: InspectorPanelProps) {
           </TabsTrigger>
           <TabsTrigger value="metadata" className="text-xs">
             メタデータ
+          </TabsTrigger>
+          <TabsTrigger value="proofread" className="text-xs">
+            校正
           </TabsTrigger>
         </TabsList>
 
@@ -277,6 +281,10 @@ export function InspectorPanel({ projectId }: InspectorPanelProps) {
                 </Badge>
               </div>
             </div>
+          </TabsContent>
+
+          <TabsContent value="proofread" className="px-3 pb-3">
+            <ProofreadingTab />
           </TabsContent>
         </ScrollArea>
       </Tabs>

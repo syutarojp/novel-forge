@@ -31,6 +31,7 @@ export function TipTapEditor({ itemId, projectId, readOnly = false }: TipTapEdit
   const { data: item } = useBinderItem(itemId);
   const updateItem = useUpdateBinderItem();
   const setSaveStatus = useUIStore((s) => s.setSaveStatus);
+  const setEditorInstance = useUIStore((s) => s.setEditorInstance);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isInitializedRef = useRef(false);
   const currentItemIdRef = useRef(itemId);
@@ -93,6 +94,16 @@ export function TipTapEditor({ itemId, projectId, readOnly = false }: TipTapEdit
       });
     }
   }, [editor, itemId, item?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Publish editor instance to store for cross-component access
+  useEffect(() => {
+    if (editor) {
+      setEditorInstance(editor);
+    }
+    return () => {
+      setEditorInstance(null);
+    };
+  }, [editor, setEditorInstance]);
 
   // Cleanup timeout on unmount
   useEffect(() => {

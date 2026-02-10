@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { Editor } from "@tiptap/react";
 import type { AppMode } from "@/types";
 
 interface UIState {
@@ -38,6 +39,10 @@ interface UIState {
   // Total word count (cached)
   totalWordCount: number;
   setTotalWordCount: (count: number) => void;
+
+  // Editor instance (shared for proofreading etc.)
+  editorInstance: Editor | null;
+  setEditorInstance: (editor: Editor | null) => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -75,4 +80,7 @@ export const useUIStore = create<UIState>((set) => ({
 
   totalWordCount: 0,
   setTotalWordCount: (count) => set({ totalWordCount: count }),
+
+  editorInstance: null,
+  setEditorInstance: (editor) => set({ editorInstance: editor }),
 }));
