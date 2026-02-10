@@ -13,6 +13,7 @@ import {
   X,
   GripVertical,
   BookOpen,
+  Settings,
 } from "lucide-react";
 import {
   DndContext,
@@ -39,7 +40,17 @@ import {
   swapSections,
   extractSectionContent,
   deleteSection,
+  updateH1Title,
 } from "@/lib/outline";
+import { useProject, useUpdateProject } from "@/hooks/use-projects";
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import {
   useTrashItems,
   useTrashSection,
@@ -77,7 +88,112 @@ interface FlatVisibleItem {
 }
 
 // ============================================================
-// H1 row (non-sortable, no actions, flat)
+// Project settings popover (opens from H1 gear icon)
+// ============================================================
+
+function ProjectSettingsPopover({
+  projectId,
+  editor,
+  open,
+  onOpenChange,
+}: {
+  projectId: string;
+  editor: Editor | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { data: project } = useProject(projectId);
+  const updateProject = useUpdateProject();
+
+  const [title, setTitle] = useState("");
+  const [author, setAuthor] = useState("");
+  const [genre, setGenre] = useState("");
+  const [targetWordCount, setTargetWordCount] = useState(0);
+
+  // Sync form when project loads or popover opens
+  useEffect(() => {
+    if (project && open) {
+      setTitle(project.title);
+      setAuthor(project.author || "");
+      setGenre(project.genre || "");
+      setTargetWordCount(project.targetWordCount || 0);
+    }
+  }, [project, open]);
+
+  const handleSave = () => {
+    if (!project) return;
+    const trimmedTitle = title.trim() || project.title;
+
+    updateProject.mutate({
+      id: projectId,
+      data: {
+        title: trimmedTitle,
+        author: author.trim(),
+        genre: genre.trim(),
+        targetWordCount,
+      },
+    });
+
+    // Update H1 in editor if title changed
+    if (editor && trimmedTitle !== project.title) {
+      updateH1Title(editor, trimmedTitle);
+    }
+
+    onOpenChange(false);
+  };
+
+  return (
+    <PopoverContent align="start" side="right" className="w-64">
+      <div className="space-y-3">
+        <h3 className="text-sm font-medium">作品設定</h3>
+        <div className="space-y-1.5">
+          <Label htmlFor="ps-title" className="text-xs">タイトル</Label>
+          <Input
+            id="ps-title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="h-7 text-xs"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="ps-author" className="text-xs">著者名</Label>
+          <Input
+            id="ps-author"
+            value={author}
+            onChange={(e) => setAuthor(e.target.value)}
+            className="h-7 text-xs"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="ps-genre" className="text-xs">ジャンル</Label>
+          <Input
+            id="ps-genre"
+            value={genre}
+            onChange={(e) => setGenre(e.target.value)}
+            className="h-7 text-xs"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="ps-wordcount" className="text-xs">目標文字数</Label>
+          <Input
+            id="ps-wordcount"
+            type="number"
+            value={targetWordCount || ""}
+            onChange={(e) => setTargetWordCount(Number(e.target.value) || 0)}
+            className="h-7 text-xs"
+            placeholder="0 = 無制限"
+          />
+        </div>
+        <Button size="sm" className="w-full h-7 text-xs" onClick={handleSave}>
+          保存
+        </Button>
+      </div>
+    </PopoverContent>
+  );
+}
+
+// ============================================================
+// H1 row (non-sortable, settings button)
 // ============================================================
 
 function H1Row({
@@ -85,6 +201,8 @@ function H1Row({
   isActive,
   hasChildren,
   isCollapsed,
+  projectId,
+  editor,
   onToggleCollapse,
   onScrollTo,
 }: {
@@ -92,44 +210,65 @@ function H1Row({
   isActive: boolean;
   hasChildren: boolean;
   isCollapsed: boolean;
+  projectId: string;
+  editor: Editor | null;
   onToggleCollapse: (id: string) => void;
   onScrollTo: (item: OutlineItem) => void;
 }) {
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
   return (
-    <div
-      className={cn(
-        "flex items-center gap-1 rounded-sm px-2 py-1 text-sm cursor-pointer select-none",
-        isActive
-          ? "border-l-2 border-primary bg-accent/50 text-foreground"
-          : "border-l-2 border-transparent hover:bg-accent/30"
-      )}
-      onClick={() => onScrollTo(item)}
-    >
-      {hasChildren ? (
-        <button
-          className="flex h-4 w-4 items-center justify-center shrink-0"
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleCollapse(item.id);
-          }}
-        >
-          {isCollapsed ? (
-            <ChevronRight className="h-3 w-3" />
-          ) : (
-            <ChevronDown className="h-3 w-3" />
-          )}
-        </button>
-      ) : (
-        <span className="w-4 shrink-0" />
-      )}
-      <BookOpen className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-      <span className="flex-1 min-w-0 truncate font-bold">{item.title}</span>
-      {item.wordCount > 0 && (
-        <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">
-          {item.wordCount.toLocaleString()}
-        </span>
-      )}
-    </div>
+    <Popover open={settingsOpen} onOpenChange={setSettingsOpen}>
+      <div
+        className={cn(
+          "group/h1 flex items-center gap-1 rounded-sm px-2 py-1 text-sm cursor-pointer select-none",
+          isActive
+            ? "border-l-2 border-primary bg-accent/50 text-foreground"
+            : "border-l-2 border-transparent hover:bg-accent/30"
+        )}
+        onClick={() => onScrollTo(item)}
+      >
+        {hasChildren ? (
+          <button
+            className="flex h-4 w-4 items-center justify-center shrink-0"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleCollapse(item.id);
+            }}
+          >
+            {isCollapsed ? (
+              <ChevronRight className="h-3 w-3" />
+            ) : (
+              <ChevronDown className="h-3 w-3" />
+            )}
+          </button>
+        ) : (
+          <span className="w-4 shrink-0" />
+        )}
+        <BookOpen className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        <span className="flex-1 min-w-0 truncate font-bold">{item.title}</span>
+        {item.wordCount > 0 && (
+          <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">
+            {item.wordCount.toLocaleString()}
+          </span>
+        )}
+        <PopoverTrigger asChild>
+          <button
+            className="flex h-5 w-5 items-center justify-center rounded shrink-0 text-muted-foreground/50 opacity-0 group-hover/h1:opacity-100 hover:bg-accent hover:text-foreground transition-opacity"
+            title="作品設定"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Settings className="h-3 w-3" />
+          </button>
+        </PopoverTrigger>
+      </div>
+      <ProjectSettingsPopover
+        projectId={projectId}
+        editor={editor}
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+      />
+    </Popover>
   );
 }
 
@@ -604,6 +743,8 @@ export function OutlinePanel({ projectId, editor }: OutlinePanelProps) {
                       isActive={isActive}
                       hasChildren={hasChildren}
                       isCollapsed={isCollapsed_}
+                      projectId={projectId}
+                      editor={editor}
                       onToggleCollapse={toggleCollapse}
                       onScrollTo={scrollToHeading}
                     />

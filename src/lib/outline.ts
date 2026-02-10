@@ -357,6 +357,31 @@ export function extractSectionContent(
 }
 
 /**
+ * Update the H1 title text in the editor.
+ * Uses allowH1Edit meta to bypass H1Protection.
+ */
+export function updateH1Title(editor: Editor, newTitle: string): void {
+  const doc = editor.state.doc;
+  const h1 = doc.firstChild;
+  if (!h1 || h1.type.name !== "heading" || h1.attrs.level !== 1) return;
+  if (h1.textContent === newTitle) return;
+
+  const h1Pos = findHeadingPMPosition(editor, 0);
+  if (h1Pos === null) return;
+
+  const contentStart = h1Pos + 1;
+  const contentEnd = h1Pos + 1 + h1.content.size;
+
+  const { tr } = editor.state;
+  tr.setMeta("allowH1Edit", true);
+  if (h1.content.size > 0) {
+    tr.delete(contentStart, contentEnd);
+  }
+  tr.insertText(newTitle, contentStart);
+  editor.view.dispatch(tr);
+}
+
+/**
  * Delete a section from the document.
  */
 export function deleteSection(

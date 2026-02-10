@@ -45,6 +45,7 @@ const H1Protection = Extension.create({
       new Plugin({
         filterTransaction(tr, state) {
           if (!tr.docChanged) return true;
+          if (tr.getMeta("allowH1Edit")) return true;
 
           // Only protect if the current doc starts with H1
           const oldFirst = state.doc.firstChild;
