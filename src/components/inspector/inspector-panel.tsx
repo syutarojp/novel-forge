@@ -71,7 +71,7 @@ export function InspectorContent({ projectId }: { projectId: string }) {
 // === Codex Inspector Content ===
 
 function CodexInspectorContent({ entryId, projectId }: { entryId: string; projectId: string }) {
-  const { data: entry } = useCodexEntry(entryId);
+  const { data: entry } = useCodexEntry(entryId, projectId);
   const { data: allEntries = [] } = useCodexEntries(projectId);
   const { data: relations = [] } = useCodexRelations(projectId);
   const createRelation = useCreateCodexRelation();

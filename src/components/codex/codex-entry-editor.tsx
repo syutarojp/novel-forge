@@ -26,7 +26,7 @@ interface CodexEntryEditorProps {
 }
 
 export function CodexEntryEditor({ entryId, projectId }: CodexEntryEditorProps) {
-  const { data: entry } = useCodexEntry(entryId);
+  const { data: entry } = useCodexEntry(entryId, projectId);
   const updateEntry = useUpdateCodexEntry();
   const deleteEntry = useDeleteCodexEntry();
   const setSelectedCodexEntryId = useUIStore((s) => s.setSelectedCodexEntryId);

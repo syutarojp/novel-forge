@@ -1,18 +1,13 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { db } from "@/db";
-import { createProject, deleteProject } from "@/db/seed";
+import { apiFetch } from "@/lib/api-client";
+import type { Project } from "@/types";
 
 export function useProjects() {
   return useQuery({
     queryKey: ["projects"],
-    queryFn: async () => {
-      const projects = await db.projects.toArray();
-      return projects.sort(
-        (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-      );
-    },
+    queryFn: () => apiFetch<Project[]>("/api/projects"),
     staleTime: 0,
   });
 }
@@ -20,7 +15,7 @@ export function useProjects() {
 export function useProject(id: string | null) {
   return useQuery({
     queryKey: ["project", id],
-    queryFn: () => (id ? db.projects.get(id) : undefined),
+    queryFn: () => apiFetch<Project>(`/api/projects/${id}`),
     enabled: !!id,
   });
 }
@@ -34,12 +29,10 @@ export function useCreateProject() {
       genre?: string;
       targetWordCount?: number;
     }) =>
-      createProject(
-        params.title,
-        params.author,
-        params.genre,
-        params.targetWordCount
-      ),
+      apiFetch<Project>("/api/projects", {
+        method: "POST",
+        body: JSON.stringify(params),
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
     },
@@ -49,7 +42,8 @@ export function useCreateProject() {
 export function useDeleteProject() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: deleteProject,
+    mutationFn: (projectId: string) =>
+      apiFetch<void>(`/api/projects/${projectId}`, { method: "DELETE" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
     },
@@ -59,9 +53,11 @@ export function useDeleteProject() {
 export function useUpdateProject() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (params: { id: string; data: Partial<import("@/types").Project> }) => {
-      await db.projects.update(params.id, { ...params.data, updatedAt: new Date() });
-    },
+    mutationFn: (params: { id: string; data: Partial<Project> }) =>
+      apiFetch<Project>(`/api/projects/${params.id}`, {
+        method: "PUT",
+        body: JSON.stringify(params.data),
+      }),
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       queryClient.invalidateQueries({ queryKey: ["project", vars.id] });
