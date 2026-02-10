@@ -1,6 +1,8 @@
 "use client";
 
 import type { Editor } from "@tiptap/react";
+import { useProofread } from "@/hooks/use-proofreading";
+import { useProofreadingStore } from "@/stores/proofreading-store";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -23,6 +25,8 @@ import {
   Redo,
   RemoveFormatting,
   Minus,
+  SpellCheck,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -62,6 +66,10 @@ function ToolbarButton({
 }
 
 export function EditorToolbar({ editor }: EditorToolbarProps) {
+  const runProofread = useProofread();
+  const proofStatus = useProofreadingStore((s) => s.status);
+  const issueCount = useProofreadingStore((s) => s.issues).length;
+
   if (!editor) return null;
 
   return (
@@ -147,6 +155,39 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
       />
 
       <div className="flex-1" />
+
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn(
+              "h-8 gap-1.5 px-2 text-xs",
+              issueCount > 0 && "text-orange-600 dark:text-orange-400"
+            )}
+            onClick={runProofread}
+            disabled={proofStatus === "loading"}
+          >
+            {proofStatus === "loading" ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <SpellCheck className="h-3.5 w-3.5" />
+            )}
+            <span className="hidden sm:inline">
+              {proofStatus === "loading"
+                ? "校正中..."
+                : issueCount > 0
+                  ? `${issueCount}件`
+                  : "校正"}
+            </span>
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          {proofStatus === "loading" ? "校正中..." : "校正を実行"}
+        </TooltipContent>
+      </Tooltip>
+
+      <Separator orientation="vertical" className="mx-1 h-6" />
 
       <ToolbarButton
         onClick={() => editor.chain().focus().undo().run()}

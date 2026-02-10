@@ -1,16 +1,16 @@
 "use client";
 
 import { useMemo } from "react";
-import { useBinderItems, useCreateBinderItem } from "@/hooks/use-binder";
+import { useBinderItems, useBinderItem, useCreateBinderItem } from "@/hooks/use-binder";
 import { useProject } from "@/hooks/use-projects";
 import { useUIStore } from "@/stores/ui-store";
 import { BinderTree } from "./binder-tree";
 import { CodexBrowserPanel } from "@/components/codex/codex-browser-panel";
-import { InspectorContent } from "@/components/inspector/inspector-panel";
+import { SceneInfoPanel } from "./scene-info-panel";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FilePlus, FolderPlus, Plus, FileText, Info } from "lucide-react";
+import { FilePlus, FolderPlus, Plus, FileText } from "lucide-react";
 import type { BinderItem } from "@/types";
 
 interface BinderPanelProps {
@@ -130,6 +130,8 @@ export function BinderPanel({ projectId }: BinderPanelProps) {
   const totalWordCount = useUIStore((s) => s.totalWordCount);
   const binderTab = useUIStore((s) => s.binderTab);
   const setBinderTab = useUIStore((s) => s.setBinderTab);
+  const selectedItemId = useUIStore((s) => s.selectedItemId);
+  const { data: selectedItem } = useBinderItem(selectedItemId);
 
   const treeData = useMemo(
     () => buildTree(items.filter((i) => i.type !== "research"), null),
@@ -193,10 +195,10 @@ export function BinderPanel({ projectId }: BinderPanelProps) {
       {/* Tab switcher */}
       <Tabs
         value={binderTab}
-        onValueChange={(v) => setBinderTab(v as "manuscript" | "codex" | "research" | "info")}
+        onValueChange={(v) => setBinderTab(v as "manuscript" | "codex" | "research")}
         className="flex flex-1 flex-col"
       >
-        <TabsList className="mx-2 mt-2 grid w-auto grid-cols-4">
+        <TabsList className="mx-2 mt-2 grid w-auto grid-cols-3">
           <TabsTrigger value="manuscript" className="text-xs">
             原稿
           </TabsTrigger>
@@ -206,26 +208,26 @@ export function BinderPanel({ projectId }: BinderPanelProps) {
           <TabsTrigger value="research" className="text-xs">
             リサーチ
           </TabsTrigger>
-          <TabsTrigger value="info" className="text-xs">
-            <Info className="h-3 w-3 mr-0.5" />
-            情報
-          </TabsTrigger>
         </TabsList>
 
-        <div className="flex-1 min-h-0">
+        <div className="flex-1 min-h-0 flex flex-col">
           {binderTab === "manuscript" && (
-            <ScrollArea className="h-full">
-              <BinderTree data={treeData} projectId={projectId} />
-            </ScrollArea>
+            <>
+              <ScrollArea className="flex-1 min-h-0">
+                <BinderTree data={treeData} projectId={projectId} />
+              </ScrollArea>
+              {selectedItem?.type === "scene" && selectedItemId && (
+                <div className="max-h-[45%] overflow-y-auto shrink-0">
+                  <SceneInfoPanel itemId={selectedItemId} projectId={projectId} />
+                </div>
+              )}
+            </>
           )}
           {binderTab === "codex" && (
             <CodexBrowserPanel projectId={projectId} />
           )}
           {binderTab === "research" && (
             <ResearchPanel items={items} projectId={projectId} />
-          )}
-          {binderTab === "info" && (
-            <InspectorContent projectId={projectId} />
           )}
         </div>
       </Tabs>
