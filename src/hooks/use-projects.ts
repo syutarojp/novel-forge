@@ -7,7 +7,13 @@ import { createProject, deleteProject } from "@/db/seed";
 export function useProjects() {
   return useQuery({
     queryKey: ["projects"],
-    queryFn: () => db.projects.orderBy("updatedAt").reverse().toArray(),
+    queryFn: async () => {
+      const projects = await db.projects.toArray();
+      return projects.sort(
+        (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      );
+    },
+    staleTime: 0,
   });
 }
 
