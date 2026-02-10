@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const SYSTEM_PROMPT = `あなたは日本語の小説校正の専門家です。出版社の校正担当として、以下のテキストを校正してください。
+// Langfuse prompt name (source of truth: Langfuse UI で編集可能)
+const LANGFUSE_PROMPT_NAME = "NovelForge：小説校正システムプロンプト";
+
+// フォールバック: Langfuse に接続できない場合に使用
+const _FALLBACK_SYSTEM_PROMPT = `あなたは日本語の小説校正の専門家です。出版社の校正担当として、以下のテキストを校正してください。
 
 以下のカテゴリで問題を指摘してください:
 - 誤字脱字: 明らかな誤字・脱字・変換ミス
@@ -31,6 +35,46 @@ const SYSTEM_PROMPT = `あなたは日本語の小説校正の専門家です。
 - severityは error（明確な誤り）、warning（改善推奨）、info（提案）で使い分けること
 - JSON以外のテキストは一切出力しないこと`;
 
+// Langfuse prompt cache (5 min TTL)
+let _cachedPrompt: { text: string; fetchedAt: number } | null = null;
+const CACHE_TTL = 5 * 60 * 1000;
+
+async function getSystemPrompt(): Promise<string> {
+  const baseUrl = process.env.LANGFUSE_BASE_URL;
+  const publicKey = process.env.LANGFUSE_PUBLIC_KEY;
+  const secretKey = process.env.LANGFUSE_SECRET_KEY;
+
+  if (!baseUrl || !publicKey || !secretKey) {
+    return _FALLBACK_SYSTEM_PROMPT;
+  }
+
+  // Return cached if fresh
+  if (_cachedPrompt && Date.now() - _cachedPrompt.fetchedAt < CACHE_TTL) {
+    return _cachedPrompt.text;
+  }
+
+  try {
+    const res = await fetch(
+      `${baseUrl}/api/public/v2/prompts/${encodeURIComponent(LANGFUSE_PROMPT_NAME)}`,
+      {
+        headers: {
+          Authorization: `Basic ${Buffer.from(`${publicKey}:${secretKey}`).toString("base64")}`,
+        },
+        signal: AbortSignal.timeout(3000),
+      }
+    );
+
+    if (!res.ok) throw new Error(`Langfuse ${res.status}`);
+    const data = await res.json();
+    const text = data.prompt || _FALLBACK_SYSTEM_PROMPT;
+    _cachedPrompt = { text, fetchedAt: Date.now() };
+    return text;
+  } catch {
+    // Langfuse unreachable — use fallback
+    return _cachedPrompt?.text || _FALLBACK_SYSTEM_PROMPT;
+  }
+}
+
 export async function POST(request: NextRequest) {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
@@ -56,6 +100,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const systemPrompt = await getSystemPrompt();
+
     const response = await fetch(
       "https://openrouter.ai/api/v1/chat/completions",
       {
@@ -68,7 +114,7 @@ export async function POST(request: NextRequest) {
           model: "z-ai/glm-4.7",
           reasoning: { effort: "none" },
           messages: [
-            { role: "system", content: SYSTEM_PROMPT },
+            { role: "system", content: systemPrompt },
             {
               role: "user",
               content: `以下のテキストを校正してください:\n\n${text}`,
@@ -107,7 +153,6 @@ export async function POST(request: NextRequest) {
 
     const parsed = JSON.parse(cleaned);
 
-    // Validate structure
     if (!Array.isArray(parsed.issues)) {
       return NextResponse.json(
         { error: "Invalid response format: missing issues array" },

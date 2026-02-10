@@ -6,7 +6,9 @@ import StarterKit from "@tiptap/starter-kit";
 import UnderlineExt from "@tiptap/extension-underline";
 import Placeholder from "@tiptap/extension-placeholder";
 import CharacterCount from "@tiptap/extension-character-count";
+import { ProofreadingDecoration } from "@/lib/proofreading/decorations";
 import { useUIStore } from "@/stores/ui-store";
+import { useProofreadingStore } from "@/stores/proofreading-store";
 import { useBinderItem, useUpdateBinderItem } from "@/hooks/use-binder";
 import { EditorToolbar } from "./editor-toolbar";
 
@@ -46,6 +48,7 @@ export function TipTapEditor({ itemId, projectId, readOnly = false }: TipTapEdit
         placeholder: "ここに本文を入力...",
       }),
       CharacterCount,
+      ProofreadingDecoration,
     ],
     editable: !readOnly,
     content: item?.content || "",
@@ -104,6 +107,19 @@ export function TipTapEditor({ itemId, projectId, readOnly = false }: TipTapEdit
       setEditorInstance(null);
     };
   }, [editor, setEditorInstance]);
+
+  // Sync proofreading issues into the decoration extension
+  const proofreadingIssues = useProofreadingStore((s) => s.issues);
+  useEffect(() => {
+    if (!editor) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const storage = (editor.extensionStorage as any).proofreadingDecoration as { issues: typeof proofreadingIssues } | undefined;
+    if (storage) {
+      storage.issues = proofreadingIssues;
+      // Force ProseMirror to re-evaluate decorations
+      editor.view.dispatch(editor.state.tr.setMeta("proofreadingUpdate", true));
+    }
+  }, [editor, proofreadingIssues]);
 
   // Cleanup timeout on unmount
   useEffect(() => {

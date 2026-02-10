@@ -140,3 +140,37 @@
   height: 0;
   pointer-events: none;
 }
+
+/* Proofreading red pen marks */
+.proofreading-mark {
+  text-decoration: wavy underline;
+  text-decoration-color: oklch(0.577 0.245 27.325);
+  text-underline-offset: 3px;
+  background-color: oklch(0.577 0.245 27.325 / 8%);
+  cursor: pointer;
+}
+
+.proofreading-mark[data-severity="warning"] {
+  text-decoration-color: oklch(0.75 0.18 55);
+  background-color: oklch(0.75 0.18 55 / 8%);
+}
+
+.proofreading-mark[data-severity="info"] {
+  text-decoration-color: oklch(0.55 0.15 250);
+  background-color: oklch(0.55 0.15 250 / 8%);
+}
+
+.proofreading-suggestion {
+  color: oklch(0.577 0.245 27.325);
+  font-weight: 600;
+  font-size: 0.9em;
+  margin-left: 2px;
+  cursor: pointer;
+}
+
+.proofreading-suggestion::before {
+  content: "→";
+  margin-right: 1px;
+  font-weight: normal;
+  opacity: 0.6;
+}
