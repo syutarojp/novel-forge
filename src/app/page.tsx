@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useSession, signOut } from "next-auth/react";
 import { useProjects, useCreateProject, useDeleteProject } from "@/hooks/use-projects";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,8 +23,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, BookOpen, Trash2, Calendar, LogOut } from "lucide-react";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { Plus, BookOpen, Trash2, Calendar } from "lucide-react";
+import { UserMenu } from "@/components/user-menu";
 
 function getRelativeTime(date: Date | string): string {
   const now = Date.now();
@@ -42,7 +41,6 @@ function getRelativeTime(date: Date | string): string {
 
 export default function HomePage() {
   const router = useRouter();
-  const { data: session } = useSession();
   const { data: projects = [], isLoading } = useProjects();
   const createProject = useCreateProject();
   const deleteProject = useDeleteProject();
@@ -87,31 +85,7 @@ export default function HomePage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            {session?.user && (
-              <div className="flex items-center gap-2 mr-2">
-                {session.user.image && (
-                  <img
-                    src={session.user.image}
-                    alt=""
-                    className="h-7 w-7 rounded-full"
-                    referrerPolicy="no-referrer"
-                  />
-                )}
-                <span className="text-sm text-muted-foreground hidden sm:inline">
-                  {session.user.name}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => signOut({ callbackUrl: "/login" })}
-                  title="サインアウト"
-                >
-                  <LogOut className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
-            <ThemeToggle />
+            <UserMenu />
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
                 <Button>

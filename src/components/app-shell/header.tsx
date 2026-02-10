@@ -4,7 +4,7 @@ import { useUIStore } from "@/stores/ui-store";
 import { useProject } from "@/hooks/use-projects";
 import { useBinderItem, useBinderItems } from "@/hooks/use-binder";
 import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { UserMenu } from "@/components/user-menu";
 import {
   ArrowLeft,
   Download,
@@ -132,7 +132,7 @@ export function Header({ onCompile }: HeaderProps) {
           <TooltipContent>コマンドパレット (⌘K)</TooltipContent>
         </Tooltip>
 
-        <ThemeToggle />
+        <UserMenu />
       </div>
     </header>
   );
