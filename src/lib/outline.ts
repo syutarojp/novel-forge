@@ -1,5 +1,6 @@
 import type { JSONContent } from "@tiptap/react";
 import type { Editor } from "@tiptap/react";
+import { Slice } from "@tiptap/pm/model";
 import type { OutlineItem } from "@/types";
 
 interface FlatHeading {
@@ -239,10 +240,9 @@ export function changeSectionLevel(
 /**
  * Move a section up or down among its siblings.
  *
- * Strategy:
- * 1. Find the section range [A_from, A_to)
- * 2. Find adjacent sibling (same level, same parent) and its range [B_from, B_to)
- * 3. Swap the two slices in a single transaction
+ * Strategy: find adjacent sibling, get both ranges, replace the combined
+ * range [first.from, second.to) with the content in swapped order.
+ * This uses a single tr.replace to avoid position mapping issues.
  */
 export function moveSection(
   editor: Editor,
@@ -251,7 +251,6 @@ export function moveSection(
 ): void {
   const doc = editor.state.doc;
 
-  // Gather all headings with PM positions
   const headings: { pos: number; level: number }[] = [];
   doc.descendants((node, pos) => {
     if (node.type.name === "heading") {
@@ -260,52 +259,71 @@ export function moveSection(
   });
 
   if (headingIndex < 0 || headingIndex >= headings.length) return;
-
   const current = headings[headingIndex];
 
-  // Find the sibling to swap with
+  // Find adjacent sibling at same level
   let siblingIndex: number | null = null;
-
   if (direction === "up") {
-    // Walk backward to find previous sibling at same level
     for (let i = headingIndex - 1; i >= 0; i--) {
-      if (headings[i].level < current.level) break; // reached parent
-      if (headings[i].level === current.level) {
-        siblingIndex = i;
-        break;
-      }
+      if (headings[i].level < current.level) break;
+      if (headings[i].level === current.level) { siblingIndex = i; break; }
     }
   } else {
-    // Walk forward to find next sibling at same level
     for (let i = headingIndex + 1; i < headings.length; i++) {
-      if (headings[i].level < current.level) break; // reached parent's next sibling
-      if (headings[i].level === current.level) {
-        siblingIndex = i;
-        break;
-      }
+      if (headings[i].level < current.level) break;
+      if (headings[i].level === current.level) { siblingIndex = i; break; }
     }
   }
-
   if (siblingIndex === null) return;
 
-  // Get ranges for both sections
   const rangeA = findSectionRange(editor, headingIndex);
   const rangeB = findSectionRange(editor, siblingIndex);
   if (!rangeA || !rangeB) return;
 
-  // Ensure A is before B for the swap
+  // Ensure first < second
   const [first, second] =
     rangeA.from < rangeB.from ? [rangeA, rangeB] : [rangeB, rangeA];
 
+  // Get content slices from the original doc
+  const firstSlice = doc.slice(first.from, first.to);
+  const secondSlice = doc.slice(second.from, second.to);
+
+  // Build swapped fragment: second content + first content
+  const swapped = secondSlice.content.append(firstSlice.content);
+
+  // Single replace over the combined range
   const { tr } = editor.state;
-  const sliceFirst = doc.slice(first.from, first.to);
-  const sliceSecond = doc.slice(second.from, second.to);
+  tr.replace(first.from, second.to, new Slice(swapped, 0, 0));
+  editor.view.dispatch(tr);
+}
 
-  // Replace second with first content, then first with second content
-  // Work backwards to preserve positions
-  tr.replaceRange(second.from, second.to, sliceFirst);
-  tr.replaceRange(first.from, first.to, sliceSecond);
+/**
+ * Swap two sections directly (for drag-and-drop).
+ * Both sections must be at the same heading level.
+ */
+export function swapSections(
+  editor: Editor,
+  headingIndexA: number,
+  headingIndexB: number
+): void {
+  if (headingIndexA === headingIndexB) return;
 
+  const rangeA = findSectionRange(editor, headingIndexA);
+  const rangeB = findSectionRange(editor, headingIndexB);
+  if (!rangeA || !rangeB) return;
+
+  const doc = editor.state.doc;
+
+  // Ensure first < second
+  const [first, second] =
+    rangeA.from < rangeB.from ? [rangeA, rangeB] : [rangeB, rangeA];
+
+  const firstSlice = doc.slice(first.from, first.to);
+  const secondSlice = doc.slice(second.from, second.to);
+  const swapped = secondSlice.content.append(firstSlice.content);
+
+  const { tr } = editor.state;
+  tr.replace(first.from, second.to, new Slice(swapped, 0, 0));
   editor.view.dispatch(tr);
 }
 

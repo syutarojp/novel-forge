@@ -35,6 +35,7 @@ import {
   findHeadingPMPosition,
   changeSectionLevel,
   moveSection,
+  swapSections,
   extractSectionContent,
   deleteSection,
 } from "@/lib/outline";
@@ -342,16 +343,35 @@ export function OutlinePanel({ projectId, editor }: OutlinePanelProps) {
   const [trashOpen, setTrashOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<OutlineItem | null>(null);
   const [skipConfirm, setSkipConfirm] = useState(false);
+  const [docVersion, setDocVersion] = useState(0);
 
   useEffect(() => {
     const stored = localStorage.getItem(SKIP_CONFIRM_KEY);
     if (stored === "true") setSkipConfirm(true);
   }, []);
 
+  // Track editor document changes for live outline updates
+  useEffect(() => {
+    if (!editor) return;
+    const onUpdate = () => setDocVersion((v) => v + 1);
+    editor.on("update", onUpdate);
+    // Also bump when editor first becomes available
+    setDocVersion((v) => v + 1);
+    return () => { editor.off("update", onUpdate); };
+  }, [editor]);
+
   const outline = useMemo(() => {
-    if (!manuscript?.content) return [];
-    return parseOutline(manuscript.content);
-  }, [manuscript?.content]);
+    // Parse from editor's live state for immediate updates
+    if (editor) {
+      return parseOutline(editor.getJSON());
+    }
+    // Fallback to API data when editor isn't ready
+    if (manuscript?.content) {
+      return parseOutline(manuscript.content);
+    }
+    return [];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editor, docVersion, manuscript?.content]);
 
   // Flatten for DnD ids (H2+ only)
   const sortableIds = useMemo(() => {
@@ -515,8 +535,7 @@ export function OutlinePanel({ projectId, editor }: OutlinePanelProps) {
       const o = flatMap.get(over.id as string);
       if (!a || !o || a.level !== o.level) return;
 
-      const dir = a.headingIndex < o.headingIndex ? "down" : "up";
-      moveSection(editor, a.headingIndex, dir);
+      swapSections(editor, a.headingIndex, o.headingIndex);
     },
     [editor, flatMap]
   );
