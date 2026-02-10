@@ -10,6 +10,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-prose: var(--font-noto-sans-jp);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -126,11 +127,15 @@
   }
 }
 
-/* TipTap editor */
+/* TipTap editor — CJK optimized */
 .tiptap.ProseMirror {
   min-height: 500px;
   padding: 0;
   outline: none;
+  font-family: var(--font-noto-sans-jp), "Noto Sans JP", sans-serif;
+  font-size: 16px;
+  line-height: 1.8;
+  font-feature-settings: "palt";
 }
 
 .tiptap.ProseMirror p.is-editor-empty:first-child::before {
@@ -173,4 +178,22 @@
   margin-right: 1px;
   font-weight: normal;
   opacity: 0.6;
+}
+
+/* Focus mode */
+.focus-mode .tiptap.ProseMirror {
+  padding: 2rem 0;
+}
+
+/* Binder tree — Notion-style active indicator */
+.binder-node-active {
+  border-left: 2px solid var(--primary);
+  background-color: var(--accent);
+}
+
+/* Selection character count tooltip */
+.selection-count {
+  position: fixed;
+  pointer-events: none;
+  z-index: 50;
 }

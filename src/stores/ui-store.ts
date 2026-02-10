@@ -26,6 +26,15 @@ interface UIState {
   toggleBinder: () => void;
   toggleInspector: () => void;
 
+  // Focus mode
+  focusMode: boolean;
+  toggleFocusMode: () => void;
+
+  // Command palette
+  commandPaletteOpen: boolean;
+  setCommandPaletteOpen: (open: boolean) => void;
+  toggleCommandPalette: () => void;
+
   // Codex drawer
   codexOpen: boolean;
   codexEntryId: string | null;
@@ -39,6 +48,14 @@ interface UIState {
   // Total word count (cached)
   totalWordCount: number;
   setTotalWordCount: (count: number) => void;
+
+  // Current scene word count
+  currentSceneWordCount: number;
+  setCurrentSceneWordCount: (count: number) => void;
+
+  // Selection word count
+  selectionWordCount: number;
+  setSelectionWordCount: (count: number) => void;
 
   // Editor instance (shared for proofreading etc.)
   editorInstance: Editor | null;
@@ -70,6 +87,21 @@ export const useUIStore = create<UIState>((set) => ({
   toggleBinder: () => set((s) => ({ binderVisible: !s.binderVisible })),
   toggleInspector: () => set((s) => ({ inspectorVisible: !s.inspectorVisible })),
 
+  focusMode: false,
+  toggleFocusMode: () =>
+    set((s) => {
+      const next = !s.focusMode;
+      return {
+        focusMode: next,
+        binderVisible: next ? false : true,
+        inspectorVisible: next ? false : true,
+      };
+    }),
+
+  commandPaletteOpen: false,
+  setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
+  toggleCommandPalette: () => set((s) => ({ commandPaletteOpen: !s.commandPaletteOpen })),
+
   codexOpen: false,
   codexEntryId: null,
   openCodex: (entryId) => set({ codexOpen: true, codexEntryId: entryId ?? null }),
@@ -80,6 +112,12 @@ export const useUIStore = create<UIState>((set) => ({
 
   totalWordCount: 0,
   setTotalWordCount: (count) => set({ totalWordCount: count }),
+
+  currentSceneWordCount: 0,
+  setCurrentSceneWordCount: (count) => set({ currentSceneWordCount: count }),
+
+  selectionWordCount: 0,
+  setSelectionWordCount: (count) => set({ selectionWordCount: count }),
 
   editorInstance: null,
   setEditorInstance: (editor) => set({ editorInstance: editor }),

@@ -34,6 +34,8 @@ export function TipTapEditor({ itemId, projectId, readOnly = false }: TipTapEdit
   const updateItem = useUpdateBinderItem();
   const setSaveStatus = useUIStore((s) => s.setSaveStatus);
   const setEditorInstance = useUIStore((s) => s.setEditorInstance);
+  const setCurrentSceneWordCount = useUIStore((s) => s.setCurrentSceneWordCount);
+  const focusMode = useUIStore((s) => s.focusMode);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isInitializedRef = useRef(false);
   const currentItemIdRef = useRef(itemId);
@@ -65,6 +67,7 @@ export function TipTapEditor({ itemId, projectId, readOnly = false }: TipTapEdit
         const text = editor.getText();
         const wc = countWords(text);
 
+        setCurrentSceneWordCount(wc);
         setSaveStatus("saving");
         updateItem.mutate(
           {
@@ -91,12 +94,16 @@ export function TipTapEditor({ itemId, projectId, readOnly = false }: TipTapEdit
       currentItemIdRef.current = itemId;
       isInitializedRef.current = false;
       editor.commands.setContent(item.content || "");
+      // Update word count for initial load
+      const text = editor.getText();
+      const wc = countWords(text);
+      setCurrentSceneWordCount(wc);
       // Small delay so the onUpdate doesn't fire for the setContent
       requestAnimationFrame(() => {
         isInitializedRef.current = true;
       });
     }
-  }, [editor, itemId, item?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [editor, itemId, item?.id, setCurrentSceneWordCount]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Publish editor instance to store for cross-component access
   useEffect(() => {
@@ -139,9 +146,9 @@ export function TipTapEditor({ itemId, projectId, readOnly = false }: TipTapEdit
   }
 
   return (
-    <div className="flex h-full flex-col">
-      {!readOnly && <EditorToolbar editor={editor} />}
-      <div className="flex-1 overflow-auto p-8">
+    <div className={`flex h-full flex-col ${focusMode ? "focus-mode" : ""}`}>
+      {!readOnly && !focusMode && <EditorToolbar editor={editor} />}
+      <div className={`flex-1 overflow-auto ${focusMode ? "p-12" : "p-8"}`}>
         <div className="mx-auto max-w-3xl">
           <EditorContent editor={editor} className="prose prose-sm dark:prose-invert max-w-none min-h-[500px] focus:outline-none" />
         </div>

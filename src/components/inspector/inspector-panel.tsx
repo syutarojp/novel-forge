@@ -121,8 +121,12 @@ export function InspectorPanel({ projectId }: InspectorPanelProps) {
             インスペクター
           </span>
         </div>
-        <div className="flex flex-1 items-center justify-center p-4 text-center text-sm text-muted-foreground">
-          アイテムを選択して詳細を表示
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 p-4 text-center text-muted-foreground">
+          <Info className="h-8 w-8 opacity-20" />
+          <div className="space-y-1">
+            <p className="text-sm font-medium">アイテムを選択</p>
+            <p className="text-xs">バインダーからシーンやフォルダを選択すると、詳細情報をここに表示します</p>
+          </div>
         </div>
       </div>
     );
@@ -140,16 +144,20 @@ export function InspectorPanel({ projectId }: InspectorPanelProps) {
       </div>
       <Tabs defaultValue="synopsis" className="flex flex-1 flex-col">
         <TabsList className="mx-2 mt-2 grid w-auto grid-cols-4">
-          <TabsTrigger value="synopsis" className="text-xs">
+          <TabsTrigger value="synopsis" className="text-[11px] gap-1">
+            <FileText className="h-3 w-3" />
             あらすじ
           </TabsTrigger>
-          <TabsTrigger value="notes" className="text-xs">
+          <TabsTrigger value="notes" className="text-[11px] gap-1">
+            <StickyNote className="h-3 w-3" />
             メモ
           </TabsTrigger>
-          <TabsTrigger value="metadata" className="text-xs">
-            メタデータ
+          <TabsTrigger value="metadata" className="text-[11px] gap-1">
+            <Tags className="h-3 w-3" />
+            メタ
           </TabsTrigger>
-          <TabsTrigger value="proofread" className="text-xs">
+          <TabsTrigger value="proofread" className="text-[11px] gap-1">
+            <SpellCheck className="h-3 w-3" />
             校正
           </TabsTrigger>
         </TabsList>

@@ -24,6 +24,20 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, BookOpen, Trash2, Calendar } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
+
+function getRelativeTime(date: Date): string {
+  const now = Date.now();
+  const diff = now - new Date(date).getTime();
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return "たった今";
+  if (minutes < 60) return `${minutes}分前`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}時間前`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}日前`;
+  return new Date(date).toLocaleDateString();
+}
 
 export default function HomePage() {
   const router = useRouter();
@@ -70,75 +84,78 @@ export default function HomePage() {
               プロジェクト一覧
             </p>
           </div>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                新規プロジェクト
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>新規プロジェクト作成</DialogTitle>
-                <DialogDescription>
-                  新しい執筆プロジェクトを始めましょう。設定は後から変更できます。
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="title">タイトル *</Label>
-                  <Input
-                    id="title"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="私の小説"
-                    autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleCreate();
-                    }}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="author">著者</Label>
-                  <Input
-                    id="author"
-                    value={author}
-                    onChange={(e) => setAuthor(e.target.value)}
-                    placeholder="著者名"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  新規プロジェクト
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>新規プロジェクト作成</DialogTitle>
+                  <DialogDescription>
+                    新しい執筆プロジェクトを始めましょう。設定は後から変更できます。
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
                   <div className="space-y-2">
-                    <Label htmlFor="genre">ジャンル</Label>
+                    <Label htmlFor="title">タイトル *</Label>
                     <Input
-                      id="genre"
-                      value={genre}
-                      onChange={(e) => setGenre(e.target.value)}
-                      placeholder="ファンタジー、SF..."
+                      id="title"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      placeholder="私の小説"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleCreate();
+                      }}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="target">目標文字数</Label>
+                    <Label htmlFor="author">著者</Label>
                     <Input
-                      id="target"
-                      type="number"
-                      value={targetWords}
-                      onChange={(e) => setTargetWords(e.target.value)}
-                      placeholder="80000"
+                      id="author"
+                      value={author}
+                      onChange={(e) => setAuthor(e.target.value)}
+                      placeholder="著者名"
                     />
                   </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="genre">ジャンル</Label>
+                      <Input
+                        id="genre"
+                        value={genre}
+                        onChange={(e) => setGenre(e.target.value)}
+                        placeholder="ファンタジー、SF..."
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="target">目標文字数</Label>
+                      <Input
+                        id="target"
+                        type="number"
+                        value={targetWords}
+                        onChange={(e) => setTargetWords(e.target.value)}
+                        placeholder="80000"
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setDialogOpen(false)}>
-                  キャンセル
-                </Button>
-                <Button onClick={handleCreate} disabled={!title.trim()}>
-                  作成
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setDialogOpen(false)}>
+                    キャンセル
+                  </Button>
+                  <Button onClick={handleCreate} disabled={!title.trim()}>
+                    作成
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
 
         {isLoading ? (
@@ -147,11 +164,25 @@ export default function HomePage() {
           </div>
         ) : projects.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <BookOpen className="mb-4 h-16 w-16 text-muted-foreground/30" />
-            <h2 className="text-xl font-semibold">プロジェクトがありません</h2>
-            <p className="mt-2 text-muted-foreground">
-              最初のプロジェクトを作成しましょう
-            </p>
+            <BookOpen className="mb-6 h-20 w-20 text-muted-foreground/20" />
+            <h2 className="text-xl font-semibold mb-6">はじめましょう</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-2xl">
+              <div className="flex flex-col items-center gap-2 p-4 rounded-lg border bg-card">
+                <span className="text-2xl font-bold text-primary">1</span>
+                <p className="text-sm font-medium">プロジェクトを作成</p>
+                <p className="text-xs text-muted-foreground">上のボタンから新規プロジェクトを作成</p>
+              </div>
+              <div className="flex flex-col items-center gap-2 p-4 rounded-lg border bg-card">
+                <span className="text-2xl font-bold text-primary">2</span>
+                <p className="text-sm font-medium">シーンを追加</p>
+                <p className="text-xs text-muted-foreground">バインダーでシーンやフォルダを作成</p>
+              </div>
+              <div className="flex flex-col items-center gap-2 p-4 rounded-lg border bg-card">
+                <span className="text-2xl font-bold text-primary">3</span>
+                <p className="text-sm font-medium">執筆開始</p>
+                <p className="text-xs text-muted-foreground">AI校正で文章をブラッシュアップ</p>
+              </div>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -170,7 +201,7 @@ export default function HomePage() {
                 <CardContent className="pb-2">
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     {project.genre && (
-                      <span className="rounded-full bg-muted px-2 py-0.5 text-xs">
+                      <span className="rounded-full bg-primary/10 text-primary px-2.5 py-0.5 text-xs font-medium">
                         {project.genre}
                       </span>
                     )}
@@ -179,7 +210,7 @@ export default function HomePage() {
                 <CardFooter className="flex items-center justify-between">
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Calendar className="h-3 w-3" />
-                    {new Date(project.updatedAt).toLocaleDateString()}
+                    {getRelativeTime(project.updatedAt)}
                   </div>
                   <Button
                     variant="ghost"

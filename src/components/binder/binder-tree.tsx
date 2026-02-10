@@ -25,6 +25,7 @@ import {
   FolderPlus,
   Pencil,
   Copy,
+  MoreHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -54,10 +55,10 @@ function Node({ node, style, dragHandle }: NodeRendererProps<TreeNode>) {
       style={style}
       ref={dragHandle}
       className={cn(
-        "flex items-center gap-1 rounded-sm px-1 py-0.5 text-sm cursor-pointer select-none",
+        "group flex items-center gap-1 rounded-sm px-1 py-0.5 text-sm cursor-pointer select-none",
         isSelected
-          ? "bg-accent text-accent-foreground"
-          : "hover:bg-accent/50"
+          ? "border-l-2 border-primary bg-accent/50 text-foreground"
+          : "border-l-2 border-transparent hover:bg-accent/30"
       )}
       onClick={() => setSelectedItemId(node.data.id)}
       onDoubleClick={() => {
@@ -84,6 +85,9 @@ function Node({ node, style, dragHandle }: NodeRendererProps<TreeNode>) {
         <span className="w-4" />
       )}
       <NodeIcon item={item} />
+      {item.type === "scene" && (
+        <span className="h-1.5 w-1.5 rounded-full bg-green-500 shrink-0" />
+      )}
       {node.isEditing ? (
         <input
           type="text"
@@ -107,6 +111,7 @@ function Node({ node, style, dragHandle }: NodeRendererProps<TreeNode>) {
           {item.wordCount.toLocaleString()}
         </span>
       )}
+      <MoreHorizontal className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground" />
     </div>
   );
 }
@@ -174,7 +179,7 @@ export function BinderTree({ data, projectId }: BinderTreeProps) {
         data={data}
         width="100%"
         indent={20}
-        rowHeight={28}
+        rowHeight={32}
         openByDefault={true}
         disableDrag={false}
         disableDrop={(args) => {

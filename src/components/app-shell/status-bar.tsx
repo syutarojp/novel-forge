@@ -8,6 +8,8 @@ export function StatusBar() {
   const activeProjectId = useUIStore((s) => s.activeProjectId);
   const saveStatus = useUIStore((s) => s.saveStatus);
   const totalWordCount = useUIStore((s) => s.totalWordCount);
+  const currentSceneWordCount = useUIStore((s) => s.currentSceneWordCount);
+  const selectionWordCount = useUIStore((s) => s.selectionWordCount);
   const { data: project } = useProject(activeProjectId);
 
   const targetWordCount = project?.targetWordCount ?? 0;
@@ -17,14 +19,19 @@ export function StatusBar() {
     <div className="flex h-7 items-center justify-between border-t bg-muted/50 px-4 text-xs text-muted-foreground">
       <div className="flex items-center gap-4">
         <span>
-          {totalWordCount.toLocaleString()} 文字
+          {currentSceneWordCount.toLocaleString()} / {totalWordCount.toLocaleString()} 文字
           {targetWordCount > 0 && (
-            <span className="ml-1">
-              / {targetWordCount.toLocaleString()} ({progress.toFixed(0)}%)
+            <span className="ml-1 opacity-70">
+              (目標: {targetWordCount.toLocaleString()} / {progress.toFixed(0)}%)
             </span>
           )}
         </span>
       </div>
+      {selectionWordCount > 0 && (
+        <div className="text-xs">
+          選択: {selectionWordCount.toLocaleString()} 文字
+        </div>
+      )}
       <div className="flex items-center gap-1.5">
         {saveStatus === "saved" && (
           <>

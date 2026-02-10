@@ -2,16 +2,12 @@
 
 import { useMemo } from "react";
 import { useBinderItems, useCreateBinderItem } from "@/hooks/use-binder";
+import { useProject } from "@/hooks/use-projects";
 import { useUIStore } from "@/stores/ui-store";
 import { BinderTree } from "./binder-tree";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FilePlus, FolderPlus } from "lucide-react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import type { BinderItem } from "@/types";
 
 interface BinderPanelProps {
@@ -42,8 +38,10 @@ function buildTree(items: BinderItem[], parentId: string | null): TreeNode[] {
 
 export function BinderPanel({ projectId }: BinderPanelProps) {
   const { data: items = [] } = useBinderItems(projectId);
+  const { data: project } = useProject(projectId);
   const createItem = useCreateBinderItem();
   const selectedItemId = useUIStore((s) => s.selectedItemId);
+  const totalWordCount = useUIStore((s) => s.totalWordCount);
 
   const treeData = useMemo(() => buildTree(items, null), [items]);
 
@@ -86,42 +84,27 @@ export function BinderPanel({ projectId }: BinderPanelProps) {
 
   return (
     <div className="flex h-full flex-col border-r bg-muted/30">
+      {/* Header with project name and add buttons */}
       <div className="flex items-center justify-between border-b px-3 py-2">
-        <span className="text-xs font-semibold uppercase text-muted-foreground">
-          バインダー
-        </span>
-        <div className="flex items-center gap-0.5">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                onClick={handleAddScene}
-              >
-                <FilePlus className="h-3.5 w-3.5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>シーン追加</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                onClick={handleAddFolder}
-              >
-                <FolderPlus className="h-3.5 w-3.5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>フォルダ追加</TooltipContent>
-          </Tooltip>
+        <span className="text-sm font-semibold truncate">{project?.title ?? "バインダー"}</span>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={handleAddScene}>
+            <FilePlus className="h-3.5 w-3.5" />
+            シーン
+          </Button>
+          <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={handleAddFolder}>
+            <FolderPlus className="h-3.5 w-3.5" />
+            フォルダ
+          </Button>
         </div>
       </div>
       <ScrollArea className="flex-1">
         <BinderTree data={treeData} projectId={projectId} />
       </ScrollArea>
+      {/* Footer: total word count */}
+      <div className="border-t px-3 py-1.5 text-xs text-muted-foreground">
+        合計 {totalWordCount.toLocaleString()} 文字
+      </div>
     </div>
   );
 }
