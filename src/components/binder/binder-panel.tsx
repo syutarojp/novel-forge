@@ -195,9 +195,9 @@ export function BinderPanel({ projectId }: BinderPanelProps) {
       <Tabs
         value={binderTab}
         onValueChange={(v) => setBinderTab(v as "manuscript" | "codex" | "research")}
-        className="flex flex-1 flex-col"
+        className="flex flex-1 flex-col min-h-0 !gap-0"
       >
-        <TabsList className="mx-2 mt-2 grid w-auto grid-cols-3">
+        <TabsList className="mx-2 my-2 grid w-auto grid-cols-3 shrink-0">
           <TabsTrigger value="manuscript" className="text-xs">
             原稿
           </TabsTrigger>
@@ -212,11 +212,11 @@ export function BinderPanel({ projectId }: BinderPanelProps) {
         <div className="flex-1 min-h-0 flex flex-col">
           {binderTab === "manuscript" && (
             <>
-              <ScrollArea className="flex-1 min-h-0">
+              <ScrollArea className="flex-[3] min-h-0">
                 <BinderTree data={treeData} projectId={projectId} />
               </ScrollArea>
               {selectedItem?.type === "scene" && selectedItemId && (
-                <div className="h-[230px] shrink-0 overflow-hidden">
+                <div className="flex-[2] min-h-0 overflow-hidden">
                   <SceneInfoPanel itemId={selectedItemId} projectId={projectId} />
                 </div>
               )}
