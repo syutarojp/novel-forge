@@ -8,8 +8,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import {
   ArrowLeft,
   Download,
-  Maximize,
-  Minimize,
+  PanelLeft,
   Search,
   ChevronRight,
 } from "lucide-react";
@@ -69,14 +68,26 @@ function Breadcrumbs() {
 }
 
 export function Header({ onCompile }: HeaderProps) {
-  const focusMode = useUIStore((s) => s.focusMode);
-  const toggleFocusMode = useUIStore((s) => s.toggleFocusMode);
+  const toggleSidebar = useUIStore((s) => s.toggleSidebar);
   const toggleCommandPalette = useUIStore((s) => s.toggleCommandPalette);
 
   return (
     <header className="flex h-12 items-center justify-between border-b bg-background px-3 gap-4">
-      {/* Left: back + breadcrumbs */}
+      {/* Left: sidebar toggle + back + breadcrumbs */}
       <div className="flex items-center gap-2 min-w-0 flex-1">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+              onClick={toggleSidebar}
+            >
+              <PanelLeft className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>サイドバー 表示/非表示</TooltipContent>
+        </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" asChild>
@@ -90,25 +101,8 @@ export function Header({ onCompile }: HeaderProps) {
         <Breadcrumbs />
       </div>
 
-      {/* Right: action buttons with labels */}
+      {/* Right: action buttons */}
       <div className="flex items-center gap-1 shrink-0">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant={focusMode ? "secondary" : "ghost"}
-              size="sm"
-              className="h-8 gap-1.5 px-2.5"
-              onClick={toggleFocusMode}
-            >
-              {focusMode ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
-              <span className="hidden sm:inline text-xs">
-                {focusMode ? "通常" : "集中"}
-              </span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>{focusMode ? "通常モードに戻る" : "集中モード"}</TooltipContent>
-        </Tooltip>
-
         <Tooltip>
           <TooltipTrigger asChild>
             <Button

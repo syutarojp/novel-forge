@@ -6,10 +6,11 @@ import { useProject } from "@/hooks/use-projects";
 import { useUIStore } from "@/stores/ui-store";
 import { BinderTree } from "./binder-tree";
 import { CodexBrowserPanel } from "@/components/codex/codex-browser-panel";
+import { InspectorContent } from "@/components/inspector/inspector-panel";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FilePlus, FolderPlus, Plus, FileText } from "lucide-react";
+import { FilePlus, FolderPlus, Plus, FileText, Info } from "lucide-react";
 import type { BinderItem } from "@/types";
 
 interface BinderPanelProps {
@@ -192,10 +193,10 @@ export function BinderPanel({ projectId }: BinderPanelProps) {
       {/* Tab switcher */}
       <Tabs
         value={binderTab}
-        onValueChange={(v) => setBinderTab(v as "manuscript" | "codex" | "research")}
+        onValueChange={(v) => setBinderTab(v as "manuscript" | "codex" | "research" | "info")}
         className="flex flex-1 flex-col"
       >
-        <TabsList className="mx-2 mt-2 grid w-auto grid-cols-3">
+        <TabsList className="mx-2 mt-2 grid w-auto grid-cols-4">
           <TabsTrigger value="manuscript" className="text-xs">
             原稿
           </TabsTrigger>
@@ -204,6 +205,10 @@ export function BinderPanel({ projectId }: BinderPanelProps) {
           </TabsTrigger>
           <TabsTrigger value="research" className="text-xs">
             リサーチ
+          </TabsTrigger>
+          <TabsTrigger value="info" className="text-xs">
+            <Info className="h-3 w-3 mr-0.5" />
+            情報
           </TabsTrigger>
         </TabsList>
 
@@ -218,6 +223,9 @@ export function BinderPanel({ projectId }: BinderPanelProps) {
           )}
           {binderTab === "research" && (
             <ResearchPanel items={items} projectId={projectId} />
+          )}
+          {binderTab === "info" && (
+            <InspectorContent projectId={projectId} />
           )}
         </div>
       </Tabs>

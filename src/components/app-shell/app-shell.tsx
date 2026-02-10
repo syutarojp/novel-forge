@@ -10,7 +10,6 @@ import { Header } from "./header";
 import { StatusBar } from "./status-bar";
 import { BinderPanel } from "@/components/binder/binder-panel";
 import { CenterPanel } from "@/components/editor/center-panel";
-import { InspectorPanel } from "@/components/inspector/inspector-panel";
 import { CompileDialog } from "@/components/compile/compile-dialog";
 import { CommandPalette } from "@/components/command-palette";
 
@@ -20,9 +19,7 @@ interface AppShellProps {
 
 export function AppShell({ projectId }: AppShellProps) {
   const setActiveProjectId = useUIStore((s) => s.setActiveProjectId);
-  const binderVisible = useUIStore((s) => s.binderVisible);
-  const inspectorVisible = useUIStore((s) => s.inspectorVisible);
-  const focusMode = useUIStore((s) => s.focusMode);
+  const sidebarVisible = useUIStore((s) => s.sidebarVisible);
   const setTotalWordCount = useUIStore((s) => s.setTotalWordCount);
   const { data: items } = useBinderItems(projectId);
   const [compileOpen, setCompileOpen] = useState(false);
@@ -66,7 +63,7 @@ export function AppShell({ projectId }: AppShellProps) {
   const handleAddFolder = () => {
     if (!items) return;
     const rootItems = items
-      .filter((item) => item.parentId === null && item.type !== "trash")
+      .filter((item) => item.parentId === null && item.type !== "trash" && item.type !== "research")
       .sort((a, b) => (a.sortOrder < b.sortOrder ? -1 : 1));
     const trashItem = items.find((item) => item.type === "trash" && item.parentId === null);
     const lastNonTrash = rootItems.length > 0 ? rootItems[rootItems.length - 1] : null;
@@ -81,9 +78,7 @@ export function AppShell({ projectId }: AppShellProps) {
 
   return (
     <div className="flex h-screen flex-col">
-      {!focusMode && (
-        <Header onCompile={() => setCompileOpen(true)} />
-      )}
+      <Header onCompile={() => setCompileOpen(true)} />
       <CompileDialog
         open={compileOpen}
         onOpenChange={setCompileOpen}
@@ -98,22 +93,17 @@ export function AppShell({ projectId }: AppShellProps) {
       />
       <div className="flex-1 overflow-hidden">
         <Allotment>
-          {binderVisible && (
-            <Allotment.Pane preferredSize={250} minSize={180} maxSize={400}>
+          {sidebarVisible && (
+            <Allotment.Pane preferredSize={280} minSize={200} maxSize={450}>
               <BinderPanel projectId={projectId} />
             </Allotment.Pane>
           )}
           <Allotment.Pane>
             <CenterPanel projectId={projectId} />
           </Allotment.Pane>
-          {inspectorVisible && (
-            <Allotment.Pane preferredSize={280} minSize={200} maxSize={400}>
-              <InspectorPanel projectId={projectId} />
-            </Allotment.Pane>
-          )}
         </Allotment>
       </div>
-      {!focusMode && <StatusBar />}
+      <StatusBar />
     </div>
   );
 }

@@ -12,8 +12,8 @@ interface UIState {
   setActiveProjectId: (id: string | null) => void;
 
   // Binder tab (manuscript vs codex)
-  binderTab: "manuscript" | "codex" | "research";
-  setBinderTab: (tab: "manuscript" | "codex" | "research") => void;
+  binderTab: "manuscript" | "codex" | "research" | "info";
+  setBinderTab: (tab: "manuscript" | "codex" | "research" | "info") => void;
 
   // Selection type (which panel owns the selection)
   selectionType: "binder" | "codex";
@@ -31,15 +31,9 @@ interface UIState {
   setSelectedItemIds: (ids: string[]) => void;
   toggleItemSelection: (id: string) => void;
 
-  // Panel visibility
-  binderVisible: boolean;
-  inspectorVisible: boolean;
-  toggleBinder: () => void;
-  toggleInspector: () => void;
-
-  // Focus mode
-  focusMode: boolean;
-  toggleFocusMode: () => void;
+  // Sidebar visibility
+  sidebarVisible: boolean;
+  toggleSidebar: () => void;
 
   // Command palette
   commandPaletteOpen: boolean;
@@ -96,21 +90,8 @@ export const useUIStore = create<UIState>((set) => ({
       return { selectedItemIds: ids, selectedItemId: ids[ids.length - 1] ?? null, selectionType: "binder" };
     }),
 
-  binderVisible: true,
-  inspectorVisible: true,
-  toggleBinder: () => set((s) => ({ binderVisible: !s.binderVisible })),
-  toggleInspector: () => set((s) => ({ inspectorVisible: !s.inspectorVisible })),
-
-  focusMode: false,
-  toggleFocusMode: () =>
-    set((s) => {
-      const next = !s.focusMode;
-      return {
-        focusMode: next,
-        binderVisible: next ? false : true,
-        inspectorVisible: next ? false : true,
-      };
-    }),
+  sidebarVisible: true,
+  toggleSidebar: () => set((s) => ({ sidebarVisible: !s.sidebarVisible })),
 
   commandPaletteOpen: false,
   setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),

@@ -12,7 +12,6 @@ import {
   CommandEmpty,
   CommandGroup,
   CommandItem,
-  CommandShortcut,
 } from "@/components/ui/command";
 import {
   FileText,
@@ -21,8 +20,6 @@ import {
   FilePlus,
   FolderPlus,
   PanelLeft,
-  PanelRight,
-  Maximize,
   PenLine,
   BookOpen,
   Map,
@@ -49,9 +46,7 @@ export function CommandPalette({
     setSelectedItemId,
     setSelectedCodexEntryId,
     setBinderTab,
-    toggleBinder,
-    toggleInspector,
-    toggleFocusMode,
+    toggleSidebar,
     setMode,
   } = useUIStore();
 
@@ -156,17 +151,9 @@ export function CommandPalette({
         </CommandGroup>
 
         <CommandGroup heading="表示">
-          <CommandItem onSelect={() => closeAndExecute(toggleBinder)}>
+          <CommandItem onSelect={() => closeAndExecute(toggleSidebar)}>
             <PanelLeft className="mr-2 h-4 w-4" />
-            <span>バインダー 表示/非表示</span>
-          </CommandItem>
-          <CommandItem onSelect={() => closeAndExecute(toggleInspector)}>
-            <PanelRight className="mr-2 h-4 w-4" />
-            <span>インスペクター 表示/非表示</span>
-          </CommandItem>
-          <CommandItem onSelect={() => closeAndExecute(toggleFocusMode)}>
-            <Maximize className="mr-2 h-4 w-4" />
-            <span>集中モード</span>
+            <span>サイドバー 表示/非表示</span>
           </CommandItem>
         </CommandGroup>
 
