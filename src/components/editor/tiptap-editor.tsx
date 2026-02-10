@@ -117,7 +117,7 @@ export function TipTapEditor({ itemId, projectId, readOnly = false }: TipTapEdit
   if (!item) {
     return (
       <div className="flex h-full items-center justify-center text-muted-foreground">
-        Select a scene to start writing
+        シーンを選択して執筆を開始してください
       </div>
     );
   }

@@ -135,7 +135,7 @@ export function InspectorPanel({ projectId }: InspectorPanelProps) {
     <div className="flex h-full flex-col border-l bg-muted/30">
       <div className="flex items-center border-b px-3 py-2">
         <span className="text-xs font-semibold uppercase text-muted-foreground">
-          Inspector
+          インスペクター
         </span>
       </div>
       <Tabs defaultValue="synopsis" className="flex flex-1 flex-col">
