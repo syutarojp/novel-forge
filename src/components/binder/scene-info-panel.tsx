@@ -98,7 +98,7 @@ export function SceneInfoPanel({ itemId, projectId }: SceneInfoPanelProps) {
       </div>
 
       {/* Fixed content area — never changes size */}
-      <div className="flex-1 min-h-0 px-3 pb-2">
+      <div className="flex-1 min-h-0 px-3 pb-4">
         {infoTab === "synopsis" && (
           <textarea
             value={synopsis}
