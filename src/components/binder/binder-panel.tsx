@@ -216,7 +216,7 @@ export function BinderPanel({ projectId }: BinderPanelProps) {
                 <BinderTree data={treeData} projectId={projectId} />
               </ScrollArea>
               {selectedItem?.type === "scene" && selectedItemId && (
-                <div className="h-52 shrink-0">
+                <div className="h-[230px] shrink-0 overflow-hidden">
                   <SceneInfoPanel itemId={selectedItemId} projectId={projectId} />
                 </div>
               )}
