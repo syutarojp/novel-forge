@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
-import { useEditor, EditorContent } from "@tiptap/react";
+import { useEffect, useRef } from "react";
+import { useEditor, EditorContent, Extension } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import UnderlineExt from "@tiptap/extension-underline";
 import Placeholder from "@tiptap/extension-placeholder";
 import CharacterCount from "@tiptap/extension-character-count";
+import { Plugin } from "@tiptap/pm/state";
 import { ProofreadingDecoration } from "@/lib/proofreading/decorations";
 import { useUIStore } from "@/stores/ui-store";
 import { useProofreadingStore } from "@/stores/proofreading-store";
@@ -19,14 +20,55 @@ interface TipTapEditorProps {
 
 function countWords(text: string): number {
   if (!text || text.trim().length === 0) return 0;
-  // Count both CJK characters and space-separated words
   const cjk = text.match(/[\u4e00-\u9fff\u3400-\u4dbf\u3040-\u309f\u30a0-\u30ff\uac00-\ud7af]/g);
   const cjkCount = cjk ? cjk.length : 0;
-  // Remove CJK characters and count remaining words
   const nonCjk = text.replace(/[\u4e00-\u9fff\u3400-\u4dbf\u3040-\u309f\u30a0-\u30ff\uac00-\ud7af]/g, " ");
   const words = nonCjk.trim().split(/\s+/).filter((w) => w.length > 0);
   return cjkCount + words.length;
 }
+
+/**
+ * H1 Protection Plugin — O(1) per transaction.
+ *
+ * Strategy: compare firstChild before/after the transaction.
+ * - If old doc starts with H1, the new doc must also start with H1 + same text.
+ * - setContent() replaces the whole doc; the new doc's H1 comes from saved data,
+ *   so the text will be the same → allowed.
+ * - User typing in H1 changes the text → blocked.
+ * - User deleting H1 removes it → blocked.
+ * - Edits to other nodes don't change firstChild → allowed.
+ */
+const H1Protection = Extension.create({
+  name: "h1Protection",
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        filterTransaction(tr, state) {
+          if (!tr.docChanged) return true;
+
+          // Only protect if the current doc starts with H1
+          const oldFirst = state.doc.firstChild;
+          if (!oldFirst || oldFirst.type.name !== "heading" || oldFirst.attrs.level !== 1) {
+            return true;
+          }
+
+          // After the transaction, doc must still start with an H1
+          const newFirst = tr.doc.firstChild;
+          if (!newFirst || newFirst.type.name !== "heading" || newFirst.attrs.level !== 1) {
+            return false;
+          }
+
+          // H1 text must remain unchanged (blocks user edits to title)
+          if (newFirst.textContent !== oldFirst.textContent) {
+            return false;
+          }
+
+          return true;
+        },
+      }),
+    ];
+  },
+});
 
 export function TipTapEditor({ projectId, readOnly = false }: TipTapEditorProps) {
   const { data: manuscriptData } = useManuscriptContent(projectId);
@@ -41,7 +83,7 @@ export function TipTapEditor({ projectId, readOnly = false }: TipTapEditorProps)
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        heading: { levels: [1, 2, 3] },
+        heading: { levels: [1, 2, 3, 4] },
       }),
       UnderlineExt,
       Placeholder.configure({
@@ -49,6 +91,7 @@ export function TipTapEditor({ projectId, readOnly = false }: TipTapEditorProps)
       }),
       CharacterCount,
       ProofreadingDecoration,
+      H1Protection,
     ],
     editable: !readOnly,
     content: manuscriptData?.content || "",
@@ -89,12 +132,10 @@ export function TipTapEditor({ projectId, readOnly = false }: TipTapEditorProps)
     if (editor && manuscriptData) {
       isInitializedRef.current = false;
       editor.commands.setContent(manuscriptData.content || "");
-      // Update word count for initial load
       const text = editor.getText();
       const wc = countWords(text);
       setTotalWordCount(wc);
       setCurrentSceneWordCount(wc);
-      // Small delay so the onUpdate doesn't fire for the setContent
       requestAnimationFrame(() => {
         isInitializedRef.current = true;
       });
@@ -119,7 +160,6 @@ export function TipTapEditor({ projectId, readOnly = false }: TipTapEditorProps)
     const storage = (editor.extensionStorage as any).proofreadingDecoration as { issues: typeof proofreadingIssues } | undefined;
     if (storage) {
       storage.issues = proofreadingIssues;
-      // Force ProseMirror to re-evaluate decorations
       editor.view.dispatch(editor.state.tr.setMeta("proofreadingUpdate", true));
     }
   }, [editor, proofreadingIssues]);

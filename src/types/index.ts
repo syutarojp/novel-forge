@@ -33,12 +33,23 @@ export interface StatusDef {
 // === Outline (derived from project content headings) ===
 export interface OutlineItem {
   id: string;       // e.g. "heading-0", "heading-1"
-  level: number;    // 1, 2, or 3
+  level: number;    // 1-4
   title: string;
-  pos: number;      // ProseMirror node position
+  headingIndex: number; // 全見出しの連番 (0始まり)
+  pos: number;      // = headingIndex (後方互換)
   endPos: number;   // end of this section (start of next heading or end of doc)
   wordCount: number;
   children: OutlineItem[];
+}
+
+// === Section Trash ===
+export interface SectionTrashItem {
+  id: string;
+  projectId: string;
+  title: string;
+  level: number;
+  content: JSONContent;
+  deletedAt: string; // ISO date
 }
 
 // === Binder Item (research items only) ===

@@ -26,7 +26,9 @@ function jsonToDocxElements(content: JSONContent | null): Paragraph[] {
             ? HeadingLevel.HEADING_1
             : level === 2
             ? HeadingLevel.HEADING_2
-            : HeadingLevel.HEADING_3;
+            : level === 3
+            ? HeadingLevel.HEADING_3
+            : HeadingLevel.HEADING_4;
         paragraphs.push(
           new Paragraph({
             heading: headingLevel,

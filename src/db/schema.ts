@@ -142,6 +142,19 @@ export const snapshots = pgTable("snapshots", {
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 });
 
+export const sectionTrash = pgTable("section_trash", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  projectId: text("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  level: integer("level").notNull(),
+  content: jsonb("content").notNull(),
+  deletedAt: timestamp("deleted_at", { mode: "date" }).notNull().defaultNow(),
+});
+
 export const collections = pgTable("collections", {
   id: text("id")
     .primaryKey()

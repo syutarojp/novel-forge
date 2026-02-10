@@ -1,4 +1,5 @@
 import type { JSONContent } from "@tiptap/react";
+import type { Editor } from "@tiptap/react";
 import type { OutlineItem } from "@/types";
 
 interface FlatHeading {
@@ -80,7 +81,8 @@ export function parseOutline(content: JSONContent | null): OutlineItem[] {
       id: `heading-${idx}`,
       level: h.level,
       title: h.title,
-      pos: h.nodeIndex, // node index (for scrolling we'll use this)
+      headingIndex: idx,
+      pos: idx, // heading index (後方互換)
       endPos: contentEndIdx,
       wordCount: countWordsInRange(nodes, contentStartIdx, contentEndIdx),
       children: [],
@@ -146,4 +148,192 @@ export function getFlatHeadings(
     }
   }
   return result;
+}
+
+// ============================================================
+// Editor-based helpers (PM position aware)
+// ============================================================
+
+/**
+ * Find the ProseMirror position of the headingIndex-th heading node.
+ */
+export function findHeadingPMPosition(
+  editor: Editor,
+  headingIndex: number
+): number | null {
+  let count = 0;
+  let targetPos: number | null = null;
+
+  editor.state.doc.descendants((node, pos) => {
+    if (targetPos !== null) return false;
+    if (node.type.name === "heading") {
+      if (count === headingIndex) {
+        targetPos = pos;
+        return false;
+      }
+      count++;
+    }
+  });
+
+  return targetPos;
+}
+
+/**
+ * Find the PM position range of a section:
+ * from the heading node to the start of the next sibling/ancestor heading (or end of doc).
+ * "Section" = the heading + all content until the next heading at the same or higher level.
+ */
+export function findSectionRange(
+  editor: Editor,
+  headingIndex: number
+): { from: number; to: number } | null {
+  const doc = editor.state.doc;
+  const headings: { pos: number; level: number; endPos: number }[] = [];
+
+  doc.descendants((node, pos) => {
+    if (node.type.name === "heading") {
+      headings.push({
+        pos,
+        level: node.attrs.level ?? 1,
+        endPos: pos + node.nodeSize,
+      });
+    }
+  });
+
+  if (headingIndex < 0 || headingIndex >= headings.length) return null;
+
+  const current = headings[headingIndex];
+  const from = current.pos;
+
+  // Find the end: next heading at same or higher (lower number) level
+  let to = doc.content.size;
+  for (let i = headingIndex + 1; i < headings.length; i++) {
+    if (headings[i].level <= current.level) {
+      to = headings[i].pos;
+      break;
+    }
+  }
+
+  return { from, to };
+}
+
+/**
+ * Change the heading level of a section.
+ */
+export function changeSectionLevel(
+  editor: Editor,
+  headingIndex: number,
+  newLevel: number
+): void {
+  const pos = findHeadingPMPosition(editor, headingIndex);
+  if (pos === null) return;
+
+  const { tr } = editor.state;
+  tr.setNodeMarkup(pos, undefined, {
+    ...editor.state.doc.nodeAt(pos)?.attrs,
+    level: newLevel,
+  });
+  editor.view.dispatch(tr);
+}
+
+/**
+ * Move a section up or down among its siblings.
+ *
+ * Strategy:
+ * 1. Find the section range [A_from, A_to)
+ * 2. Find adjacent sibling (same level, same parent) and its range [B_from, B_to)
+ * 3. Swap the two slices in a single transaction
+ */
+export function moveSection(
+  editor: Editor,
+  headingIndex: number,
+  direction: "up" | "down"
+): void {
+  const doc = editor.state.doc;
+
+  // Gather all headings with PM positions
+  const headings: { pos: number; level: number }[] = [];
+  doc.descendants((node, pos) => {
+    if (node.type.name === "heading") {
+      headings.push({ pos, level: node.attrs.level ?? 1 });
+    }
+  });
+
+  if (headingIndex < 0 || headingIndex >= headings.length) return;
+
+  const current = headings[headingIndex];
+
+  // Find the sibling to swap with
+  let siblingIndex: number | null = null;
+
+  if (direction === "up") {
+    // Walk backward to find previous sibling at same level
+    for (let i = headingIndex - 1; i >= 0; i--) {
+      if (headings[i].level < current.level) break; // reached parent
+      if (headings[i].level === current.level) {
+        siblingIndex = i;
+        break;
+      }
+    }
+  } else {
+    // Walk forward to find next sibling at same level
+    for (let i = headingIndex + 1; i < headings.length; i++) {
+      if (headings[i].level < current.level) break; // reached parent's next sibling
+      if (headings[i].level === current.level) {
+        siblingIndex = i;
+        break;
+      }
+    }
+  }
+
+  if (siblingIndex === null) return;
+
+  // Get ranges for both sections
+  const rangeA = findSectionRange(editor, headingIndex);
+  const rangeB = findSectionRange(editor, siblingIndex);
+  if (!rangeA || !rangeB) return;
+
+  // Ensure A is before B for the swap
+  const [first, second] =
+    rangeA.from < rangeB.from ? [rangeA, rangeB] : [rangeB, rangeA];
+
+  const { tr } = editor.state;
+  const sliceFirst = doc.slice(first.from, first.to);
+  const sliceSecond = doc.slice(second.from, second.to);
+
+  // Replace second with first content, then first with second content
+  // Work backwards to preserve positions
+  tr.replaceRange(second.from, second.to, sliceFirst);
+  tr.replaceRange(first.from, first.to, sliceSecond);
+
+  editor.view.dispatch(tr);
+}
+
+/**
+ * Extract section content as JSONContent (for trash).
+ */
+export function extractSectionContent(
+  editor: Editor,
+  headingIndex: number
+): JSONContent | null {
+  const range = findSectionRange(editor, headingIndex);
+  if (!range) return null;
+
+  const slice = editor.state.doc.slice(range.from, range.to);
+  return slice.toJSON() as unknown as JSONContent;
+}
+
+/**
+ * Delete a section from the document.
+ */
+export function deleteSection(
+  editor: Editor,
+  headingIndex: number
+): void {
+  const range = findSectionRange(editor, headingIndex);
+  if (!range) return;
+
+  const { tr } = editor.state;
+  tr.delete(range.from, range.to);
+  editor.view.dispatch(tr);
 }

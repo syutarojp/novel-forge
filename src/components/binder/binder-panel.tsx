@@ -9,7 +9,7 @@ import { CodexBrowserPanel } from "@/components/codex/codex-browser-panel";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, FileText, Heading2 } from "lucide-react";
+import { Plus, FileText, Heading2Icon } from "lucide-react";
 import type { BinderItem } from "@/types";
 
 interface BinderPanelProps {
@@ -99,7 +99,7 @@ export function BinderPanel({ projectId }: BinderPanelProps) {
   const handleAddHeading = () => {
     if (!editor) return;
 
-    // Insert a new heading at the end of the document
+    // Insert a new H2 section at the end of the document
     const { doc } = editor.state;
     const endPos = doc.content.size;
 
@@ -107,13 +107,12 @@ export function BinderPanel({ projectId }: BinderPanelProps) {
       .chain()
       .focus()
       .command(({ tr }) => {
-        // Add a new paragraph with heading at the end
         tr.insert(endPos, [
           editor.schema.nodes.paragraph.create(null, [
             editor.schema.text("\n"),
           ]),
           editor.schema.nodes.heading.create({ level: 2 }, [
-            editor.schema.text("新しい見出し"),
+            editor.schema.text("新しいセクション"),
           ]),
         ]);
         return true;
@@ -133,8 +132,8 @@ export function BinderPanel({ projectId }: BinderPanelProps) {
             className="h-7 gap-1 px-2 text-xs"
             onClick={handleAddHeading}
           >
-            <Heading2 className="h-3.5 w-3.5" />
-            見出し
+            <Heading2Icon className="h-3.5 w-3.5" />
+            セクション
           </Button>
         )}
       </div>
