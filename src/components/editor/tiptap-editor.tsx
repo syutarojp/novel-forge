@@ -79,6 +79,7 @@ export function TipTapEditor({ projectId, readOnly = false }: TipTapEditorProps)
   const setCurrentSceneWordCount = useUIStore((s) => s.setCurrentSceneWordCount);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isInitializedRef = useRef(false);
+  const contentLoadedRef = useRef(false);
 
   const editor = useEditor({
     extensions: [
@@ -127,9 +128,11 @@ export function TipTapEditor({ projectId, readOnly = false }: TipTapEditorProps)
     immediatelyRender: false,
   });
 
-  // Update content when manuscript data loads
+  // Load content ONCE when manuscript data first arrives.
+  // After that, the editor is the source of truth — never overwrite from API.
   useEffect(() => {
-    if (editor && manuscriptData) {
+    if (editor && manuscriptData && !contentLoadedRef.current) {
+      contentLoadedRef.current = true;
       isInitializedRef.current = false;
       editor.commands.setContent(manuscriptData.content || "");
       const text = editor.getText();
@@ -140,7 +143,7 @@ export function TipTapEditor({ projectId, readOnly = false }: TipTapEditorProps)
         isInitializedRef.current = true;
       });
     }
-  }, [editor, manuscriptData?.content, setTotalWordCount, setCurrentSceneWordCount]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [editor, manuscriptData, setTotalWordCount, setCurrentSceneWordCount]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Publish editor instance to store for cross-component access
   useEffect(() => {

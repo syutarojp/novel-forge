@@ -34,10 +34,13 @@ export function useUpdateManuscriptContent() {
         }),
       }),
     onSuccess: (_, vars) => {
-      queryClient.invalidateQueries({
-        queryKey: ["manuscriptContent", vars.projectId],
+      // Update cache directly — editor is the source of truth, no re-fetch needed.
+      // Re-fetching would overwrite the editor with stale data via the setContent effect.
+      queryClient.setQueryData(["manuscriptContent", vars.projectId], {
+        content: vars.content,
+        wordCount: vars.wordCount,
       });
-      // Also invalidate the project query so word count updates
+      // Invalidate the project query so word count updates in the project list
       queryClient.invalidateQueries({
         queryKey: ["project", vars.projectId],
       });
