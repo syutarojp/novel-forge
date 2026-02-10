@@ -12,8 +12,8 @@ interface UIState {
   setActiveProjectId: (id: string | null) => void;
 
   // Binder tab (manuscript vs codex)
-  binderTab: "manuscript" | "codex";
-  setBinderTab: (tab: "manuscript" | "codex") => void;
+  binderTab: "manuscript" | "codex" | "research";
+  setBinderTab: (tab: "manuscript" | "codex" | "research") => void;
 
   // Selection type (which panel owns the selection)
   selectionType: "binder" | "codex";

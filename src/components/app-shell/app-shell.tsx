@@ -82,10 +82,7 @@ export function AppShell({ projectId }: AppShellProps) {
   return (
     <div className="flex h-screen flex-col">
       {!focusMode && (
-        <Header
-          onCompile={() => setCompileOpen(true)}
-          onProofread={runProofread}
-        />
+        <Header onCompile={() => setCompileOpen(true)} />
       )}
       <CompileDialog
         open={compileOpen}

@@ -4,7 +4,6 @@ import {
   Package,
   BookOpen,
   GitBranch,
-  Circle,
   type LucideIcon,
 } from "lucide-react";
 import type { CodexEntryType } from "@/types";
@@ -21,13 +20,12 @@ export const CODEX_TYPES: CodexTypeDef[] = [
   { type: "object", label: "アイテム", icon: Package },
   { type: "lore", label: "設定", icon: BookOpen },
   { type: "subplot", label: "サブプロット", icon: GitBranch },
-  { type: "other", label: "その他", icon: Circle },
 ];
 
 const typeMap = new Map(CODEX_TYPES.map((t) => [t.type, t]));
 
 export function getCodexTypeDef(type: CodexEntryType): CodexTypeDef {
-  return typeMap.get(type) ?? CODEX_TYPES[5]; // fallback to "other"
+  return typeMap.get(type) ?? CODEX_TYPES[CODEX_TYPES.length - 1];
 }
 
 export const CODEX_COLORS = [

@@ -8,7 +8,6 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import {
   ArrowLeft,
   Download,
-  SpellCheck,
   Maximize,
   Minimize,
   Search,
@@ -23,7 +22,6 @@ import Link from "next/link";
 
 interface HeaderProps {
   onCompile?: () => void;
-  onProofread?: () => void;
 }
 
 function Breadcrumbs() {
@@ -70,17 +68,10 @@ function Breadcrumbs() {
   );
 }
 
-export function Header({ onCompile, onProofread }: HeaderProps) {
+export function Header({ onCompile }: HeaderProps) {
   const focusMode = useUIStore((s) => s.focusMode);
   const toggleFocusMode = useUIStore((s) => s.toggleFocusMode);
   const toggleCommandPalette = useUIStore((s) => s.toggleCommandPalette);
-  const inspectorVisible = useUIStore((s) => s.inspectorVisible);
-  const toggleInspector = useUIStore((s) => s.toggleInspector);
-
-  const handleProofread = () => {
-    if (!inspectorVisible) toggleInspector();
-    onProofread?.();
-  };
 
   return (
     <header className="flex h-12 items-center justify-between border-b bg-background px-3 gap-4">
@@ -116,21 +107,6 @@ export function Header({ onCompile, onProofread }: HeaderProps) {
             </Button>
           </TooltipTrigger>
           <TooltipContent>{focusMode ? "通常モードに戻る" : "集中モード"}</TooltipContent>
-        </Tooltip>
-
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 gap-1.5 px-2.5"
-              onClick={handleProofread}
-            >
-              <SpellCheck className="h-4 w-4" />
-              <span className="hidden sm:inline text-xs">校正</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>AI校正を実行</TooltipContent>
         </Tooltip>
 
         <Tooltip>

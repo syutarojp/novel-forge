@@ -95,7 +95,7 @@ function CodexInspector({ entryId, projectId }: { entryId: string; projectId: st
     <div className="flex h-full flex-col border-l bg-muted/30">
       <div className="flex items-center border-b px-3 py-2">
         <span className="text-xs font-semibold uppercase text-muted-foreground">
-          インスペクター
+          情報
         </span>
       </div>
       <Tabs defaultValue="relations" className="flex flex-1 flex-col">
@@ -348,7 +348,7 @@ function BinderInspector({
     <div className="flex h-full flex-col border-l bg-muted/30">
       <div className="flex items-center border-b px-3 py-2">
         <span className="text-xs font-semibold uppercase text-muted-foreground">
-          インスペクター
+          情報
         </span>
       </div>
       <Tabs defaultValue="synopsis" className="flex flex-1 flex-col">
@@ -516,7 +516,7 @@ function EmptyInspector() {
     <div className="flex h-full flex-col border-l bg-muted/30">
       <div className="flex items-center border-b px-3 py-2">
         <span className="text-xs font-semibold uppercase text-muted-foreground">
-          インスペクター
+          情報
         </span>
       </div>
       <div className="flex flex-1 flex-col items-center justify-center gap-3 p-4 text-center text-muted-foreground">
@@ -524,7 +524,7 @@ function EmptyInspector() {
         <div className="space-y-1">
           <p className="text-sm font-medium">アイテムを選択</p>
           <p className="text-xs">
-            バインダーからシーンやフォルダを選択すると、詳細情報をここに表示します
+            シーンやエントリを選択すると、詳細をここに表示します
           </p>
         </div>
       </div>
