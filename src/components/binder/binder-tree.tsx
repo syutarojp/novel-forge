@@ -1,54 +1,50 @@
 "use client";
 
-import { useRef, useCallback } from "react";
+import { useCallback, createContext, useContext } from "react";
 import { Tree, type NodeRendererProps } from "react-arborist";
 import { generateKeyBetween } from "fractional-indexing";
 import { useUIStore } from "@/stores/ui-store";
-import { useUpdateBinderItem, useMoveBinderItem, useDeleteBinderItem, useCreateBinderItem, useBinderItems } from "@/hooks/use-binder";
+import { useUpdateBinderItem, useMoveBinderItem, useBinderItems } from "@/hooks/use-binder";
 import type { TreeNode } from "./binder-panel";
 import type { BinderItem } from "@/types";
 import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuSeparator,
-  ContextMenuTrigger,
-} from "@/components/ui/context-menu";
-import {
   FileText,
-  Folder,
-  FolderOpen,
   Trash2,
   ChevronRight,
   ChevronDown,
-  FilePlus,
-  FolderPlus,
-  Pencil,
-  Copy,
-  MoreHorizontal,
+  ArrowRight,
+  ArrowLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-// We need the context-menu shadcn component. First let me check if it exists.
-// If not, we'll use a simple approach.
 
 interface BinderTreeProps {
   data: TreeNode[];
   projectId: string;
 }
 
+// Context to pass tree-level handlers to Node component
+interface TreeActions {
+  allItems: BinderItem[];
+  projectId: string;
+  onIndent: (id: string) => void;
+  onOutdent: (id: string) => void;
+  onTrash: (id: string) => void;
+}
+
+const TreeActionsContext = createContext<TreeActions | null>(null);
+
 function NodeIcon({ item }: { item: BinderItem }) {
   if (item.type === "trash") return <Trash2 className="h-4 w-4 text-muted-foreground" />;
-  if (item.type === "folder") return <Folder className="h-4 w-4 text-blue-500" />;
   return <FileText className="h-4 w-4 text-muted-foreground" />;
 }
 
 function Node({ node, style, dragHandle }: NodeRendererProps<TreeNode>) {
   const selectedItemId = useUIStore((s) => s.selectedItemId);
   const setSelectedItemId = useUIStore((s) => s.setSelectedItemId);
-  const updateItem = useUpdateBinderItem();
+  const actions = useContext(TreeActionsContext)!;
   const isSelected = selectedItemId === node.data.id;
   const item = node.data.data;
+  const isTrash = item.type === "trash";
 
   return (
     <div
@@ -62,14 +58,12 @@ function Node({ node, style, dragHandle }: NodeRendererProps<TreeNode>) {
       )}
       onClick={() => setSelectedItemId(node.data.id)}
       onDoubleClick={() => {
-        if (item.type !== "trash") {
-          node.edit();
-        }
+        if (!isTrash) node.edit();
       }}
     >
-      {node.data.children !== undefined ? (
+      {node.data.children !== undefined && (node.data.children.length > 0 || isTrash) ? (
         <button
-          className="flex h-4 w-4 items-center justify-center"
+          className="flex h-4 w-4 items-center justify-center shrink-0"
           onClick={(e) => {
             e.stopPropagation();
             node.toggle();
@@ -82,36 +76,65 @@ function Node({ node, style, dragHandle }: NodeRendererProps<TreeNode>) {
           )}
         </button>
       ) : (
-        <span className="w-4" />
+        <span className="w-4 shrink-0" />
       )}
       <NodeIcon item={item} />
-      {item.type === "scene" && (
-        <span className="h-1.5 w-1.5 rounded-full bg-green-500 shrink-0" />
-      )}
       {node.isEditing ? (
         <input
           type="text"
           defaultValue={node.data.name}
-          className="flex-1 bg-background px-1 py-0 text-sm border rounded outline-none"
+          className="flex-1 min-w-0 bg-background px-1 py-0 text-sm border rounded outline-none"
           autoFocus
           onFocus={(e) => e.target.select()}
-          onBlur={(e) => {
-            node.submit(e.target.value);
-          }}
+          onBlur={(e) => node.submit(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") node.submit((e.target as HTMLInputElement).value);
             if (e.key === "Escape") node.reset();
           }}
         />
       ) : (
-        <span className="flex-1 truncate">{node.data.name}</span>
+        <span className="flex-1 min-w-0 truncate">{node.data.name}</span>
       )}
       {item.wordCount > 0 && item.type === "scene" && (
-        <span className="text-[10px] text-muted-foreground tabular-nums">
+        <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">
           {item.wordCount.toLocaleString()}
         </span>
       )}
-      <MoreHorizontal className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground" />
+      {/* Action buttons (hover) */}
+      {!isTrash && !node.isEditing && (
+        <div className="flex items-center gap-0 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+          <button
+            className="flex h-5 w-5 items-center justify-center rounded hover:bg-accent"
+            title="ネスト（右へ）"
+            onClick={(e) => {
+              e.stopPropagation();
+              actions.onIndent(node.data.id);
+            }}
+          >
+            <ArrowRight className="h-3 w-3 text-muted-foreground" />
+          </button>
+          <button
+            className="flex h-5 w-5 items-center justify-center rounded hover:bg-accent"
+            title="ネスト解除（左へ）"
+            onClick={(e) => {
+              e.stopPropagation();
+              actions.onOutdent(node.data.id);
+            }}
+          >
+            <ArrowLeft className="h-3 w-3 text-muted-foreground" />
+          </button>
+          <button
+            className="flex h-5 w-5 items-center justify-center rounded hover:bg-destructive/20"
+            title="ゴミ箱へ"
+            onClick={(e) => {
+              e.stopPropagation();
+              actions.onTrash(node.data.id);
+            }}
+          >
+            <Trash2 className="h-3 w-3 text-muted-foreground" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -120,7 +143,6 @@ export function BinderTree({ data, projectId }: BinderTreeProps) {
   const setSelectedItemId = useUIStore((s) => s.setSelectedItemId);
   const updateItem = useUpdateBinderItem();
   const moveItem = useMoveBinderItem();
-  const deleteItem = useDeleteBinderItem();
   const { data: allItems = [] } = useBinderItems(projectId);
 
   const handleRename = useCallback(
@@ -154,7 +176,6 @@ export function BinderTree({ data, projectId }: BinderTreeProps) {
 
   const handleDelete = useCallback(
     ({ ids }: { ids: string[] }) => {
-      // Move to trash instead of deleting
       const trashItem = allItems.find((item) => item.type === "trash" && item.parentId === null);
       if (trashItem) {
         for (const id of ids) {
@@ -173,31 +194,117 @@ export function BinderTree({ data, projectId }: BinderTreeProps) {
     [allItems, moveItem, projectId]
   );
 
+  // Indent: move item as last child of the sibling above it
+  const handleIndent = useCallback(
+    (id: string) => {
+      const item = allItems.find((i) => i.id === id);
+      if (!item) return;
+
+      // Find siblings at the same level, sorted
+      const siblings = allItems
+        .filter((i) => i.parentId === item.parentId && i.type !== "trash")
+        .sort((a, b) => (a.sortOrder < b.sortOrder ? -1 : 1));
+
+      const idx = siblings.findIndex((s) => s.id === id);
+      if (idx <= 0) return; // Can't indent first item
+
+      const newParent = siblings[idx - 1];
+      // Place as last child of the new parent
+      const newParentChildren = allItems
+        .filter((i) => i.parentId === newParent.id)
+        .sort((a, b) => (a.sortOrder < b.sortOrder ? -1 : 1));
+      const lastChild = newParentChildren.length > 0 ? newParentChildren[newParentChildren.length - 1] : null;
+
+      moveItem.mutate({
+        id,
+        projectId,
+        newParentId: newParent.id,
+        newSortOrder: generateKeyBetween(lastChild?.sortOrder ?? null, null),
+      });
+    },
+    [allItems, moveItem, projectId]
+  );
+
+  // Outdent: move item to parent's level, right after parent
+  const handleOutdent = useCallback(
+    (id: string) => {
+      const item = allItems.find((i) => i.id === id);
+      if (!item || !item.parentId) return; // Already at root
+
+      const parent = allItems.find((i) => i.id === item.parentId);
+      if (!parent) return;
+
+      // Place right after parent in grandparent's children
+      const grandparentChildren = allItems
+        .filter((i) => i.parentId === parent.parentId && i.type !== "trash")
+        .sort((a, b) => (a.sortOrder < b.sortOrder ? -1 : 1));
+      const parentIdx = grandparentChildren.findIndex((s) => s.id === parent.id);
+      const after = parent.sortOrder;
+      const next = parentIdx + 1 < grandparentChildren.length ? grandparentChildren[parentIdx + 1] : null;
+
+      moveItem.mutate({
+        id,
+        projectId,
+        newParentId: parent.parentId,
+        newSortOrder: generateKeyBetween(after, next?.sortOrder ?? null),
+      });
+    },
+    [allItems, moveItem, projectId]
+  );
+
+  // Move to trash
+  const handleTrash = useCallback(
+    (id: string) => {
+      const trashItem = allItems.find((item) => item.type === "trash" && item.parentId === null);
+      if (!trashItem) return;
+      const item = allItems.find((i) => i.id === id);
+      if (!item || item.type === "trash") return;
+
+      moveItem.mutate({
+        id,
+        projectId,
+        newParentId: trashItem.id,
+        newSortOrder: generateKeyBetween(null, null),
+      });
+    },
+    [allItems, moveItem, projectId]
+  );
+
+  const actions: TreeActions = {
+    allItems,
+    projectId,
+    onIndent: handleIndent,
+    onOutdent: handleOutdent,
+    onTrash: handleTrash,
+  };
+
   return (
-    <div className="p-1">
-      <Tree
-        data={data}
-        width="100%"
-        indent={20}
-        rowHeight={32}
-        openByDefault={true}
-        disableDrag={false}
-        disableDrop={(args) => {
-          // Don't allow dropping into scene nodes or trash
-          if (args.parentNode?.data?.data?.type === "scene") return true;
-          return false;
-        }}
-        onRename={handleRename}
-        onMove={handleMove}
-        onDelete={handleDelete}
-        onSelect={(nodes) => {
-          if (nodes.length > 0) {
-            setSelectedItemId(nodes[0].data.id);
-          }
-        }}
-      >
-        {Node}
-      </Tree>
-    </div>
+    <TreeActionsContext.Provider value={actions}>
+      <div className="p-1">
+        <Tree
+          data={data}
+          width="100%"
+          indent={20}
+          rowHeight={32}
+          openByDefault={true}
+          disableDrag={false}
+          disableDrop={(args) => {
+            // Only prevent dropping into trash
+            if (args.parentNode?.data?.data?.type === "trash") return true;
+            return false;
+          }}
+          onRename={handleRename}
+          onMove={handleMove}
+          onDelete={handleDelete}
+          onSelect={(nodes) => {
+            if (nodes.length > 0) {
+              setSelectedItemId(nodes[0].data.id);
+            }
+          }}
+        >
+          {Node}
+        </Tree>
+      </div>
+    </TreeActionsContext.Provider>
   );
 }

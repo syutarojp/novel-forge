@@ -10,7 +10,7 @@ import { SceneInfoPanel } from "./scene-info-panel";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FilePlus, FolderPlus, Plus, FileText } from "lucide-react";
+import { FilePlus, Plus, FileText } from "lucide-react";
 import type { BinderItem } from "@/types";
 
 interface BinderPanelProps {
@@ -30,10 +30,12 @@ function buildTree(items: BinderItem[], parentId: string | null): TreeNode[] {
     .sort((a, b) => (a.sortOrder < b.sortOrder ? -1 : a.sortOrder > b.sortOrder ? 1 : 0))
     .map((item) => {
       const children = buildTree(items, item.id);
+      // scenes, folders, trash can all have children (nesting)
+      // research items are always leaf nodes
       return {
         id: item.id,
         name: item.title,
-        children: item.type === "folder" || item.type === "trash" ? children : undefined,
+        children: item.type === "research" ? undefined : children,
         data: item,
       };
     });
@@ -156,38 +158,16 @@ export function BinderPanel({ projectId }: BinderPanelProps) {
     });
   };
 
-  const handleAddFolder = () => {
-    const rootItems = items
-      .filter((item) => item.parentId === null && item.type !== "trash" && item.type !== "research")
-      .sort((a, b) => (a.sortOrder < b.sortOrder ? -1 : 1));
-    const trashItem = items.find((item) => item.type === "trash" && item.parentId === null);
-    const lastNonTrash = rootItems.length > 0 ? rootItems[rootItems.length - 1] : null;
-
-    createItem.mutate({
-      projectId,
-      parentId: null,
-      type: "folder",
-      afterSortOrder: lastNonTrash?.sortOrder ?? null,
-      beforeSortOrder: trashItem?.sortOrder ?? null,
-    });
-  };
-
   return (
     <div className="flex h-full flex-col border-r bg-muted/30">
       {/* Header with project name and action buttons */}
       <div className="flex items-center justify-between border-b px-3 py-2">
         <span className="text-sm font-semibold truncate">{project?.title ?? "バインダー"}</span>
         {binderTab === "manuscript" && (
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={handleAddScene}>
-              <FilePlus className="h-3.5 w-3.5" />
-              シーン
-            </Button>
-            <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={handleAddFolder}>
-              <FolderPlus className="h-3.5 w-3.5" />
-              フォルダ
-            </Button>
-          </div>
+          <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={handleAddScene}>
+            <FilePlus className="h-3.5 w-3.5" />
+            シーン
+          </Button>
         )}
       </div>
 
