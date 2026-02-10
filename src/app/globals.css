@@ -125,3 +125,18 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* TipTap editor */
+.tiptap.ProseMirror {
+  min-height: 500px;
+  padding: 0;
+  outline: none;
+}
+
+.tiptap.ProseMirror p.is-editor-empty:first-child::before {
+  color: var(--muted-foreground);
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
