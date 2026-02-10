@@ -2,9 +2,11 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useBinderItem, useUpdateBinderItem } from "@/hooks/use-binder";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
+
+type InfoTab = "synopsis" | "notes" | "meta";
 
 interface SceneInfoPanelProps {
   itemId: string;
@@ -15,6 +17,7 @@ export function SceneInfoPanel({ itemId, projectId }: SceneInfoPanelProps) {
   const { data: item } = useBinderItem(itemId);
   const updateItem = useUpdateBinderItem();
 
+  const [infoTab, setInfoTab] = useState<InfoTab>("synopsis");
   const [synopsis, setSynopsis] = useState("");
   const [notes, setNotes] = useState("");
   const synopsisTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -68,41 +71,54 @@ export function SceneInfoPanel({ itemId, projectId }: SceneInfoPanelProps) {
 
   if (!item) return null;
 
+  const tabs: { value: InfoTab; label: string }[] = [
+    { value: "synopsis", label: "あらすじ" },
+    { value: "notes", label: "メモ" },
+    { value: "meta", label: "メタ" },
+  ];
+
   return (
     <div className="border-t flex flex-col h-full overflow-hidden">
-      <Tabs defaultValue="synopsis" className="flex flex-col h-full min-h-0">
-        <TabsList className="mx-2 mt-1.5 mb-1 grid w-auto grid-cols-3 h-7 shrink-0">
-          <TabsTrigger value="synopsis" className="text-[11px] h-6">
-            あらすじ
-          </TabsTrigger>
-          <TabsTrigger value="notes" className="text-[11px] h-6">
-            メモ
-          </TabsTrigger>
-          <TabsTrigger value="meta" className="text-[11px] h-6">
-            メタ
-          </TabsTrigger>
-        </TabsList>
+      {/* Tab buttons */}
+      <div className="flex mx-2 mt-1.5 mb-1 rounded-lg bg-muted p-[3px] h-7 shrink-0">
+        {tabs.map((tab) => (
+          <button
+            key={tab.value}
+            onClick={() => setInfoTab(tab.value)}
+            className={cn(
+              "flex-1 rounded-md text-[11px] font-medium transition-colors h-full",
+              infoTab === tab.value
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-        <TabsContent value="synopsis" className="flex-1 min-h-0 px-3 pb-2 m-0">
+      {/* Fixed content area — never changes size */}
+      <div className="flex-1 min-h-0 px-3 pb-2">
+        {infoTab === "synopsis" && (
           <textarea
             value={synopsis}
             onChange={(e) => handleSynopsisChange(e.target.value)}
             placeholder="あらすじを入力..."
             className="w-full h-full resize-none text-xs rounded-md border border-input bg-transparent px-3 py-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           />
-        </TabsContent>
+        )}
 
-        <TabsContent value="notes" className="flex-1 min-h-0 px-3 pb-2 m-0">
+        {infoTab === "notes" && (
           <textarea
             value={notes}
             onChange={(e) => handleNotesChange(e.target.value)}
             placeholder="メモを入力..."
             className="w-full h-full resize-none text-xs rounded-md border border-input bg-transparent px-3 py-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           />
-        </TabsContent>
+        )}
 
-        <TabsContent value="meta" className="flex-1 min-h-0 px-3 pb-2 m-0 overflow-y-auto">
-          <div className="space-y-3">
+        {infoTab === "meta" && (
+          <div className="h-full overflow-y-auto space-y-3">
             <div className="space-y-1.5 text-[11px] text-muted-foreground">
               <div className="flex justify-between">
                 <span>文字数</span>
@@ -136,8 +152,8 @@ export function SceneInfoPanel({ itemId, projectId }: SceneInfoPanelProps) {
               </button>
             </div>
           </div>
-        </TabsContent>
-      </Tabs>
+        )}
+      </div>
     </div>
   );
 }
