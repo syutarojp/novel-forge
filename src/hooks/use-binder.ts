@@ -1,54 +1,46 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { generateKeyBetween } from "fractional-indexing";
 import { apiFetch } from "@/lib/api-client";
-import type { BinderItem, BinderItemType } from "@/types";
+import type { BinderItem } from "@/types";
 
-export function useBinderItems(projectId: string | null) {
+/** Fetch all research items for a project */
+export function useResearchItems(projectId: string | null) {
   return useQuery({
-    queryKey: ["binderItems", projectId],
+    queryKey: ["researchItems", projectId],
     queryFn: () =>
       apiFetch<BinderItem[]>(`/api/projects/${projectId}/binder-items`),
     enabled: !!projectId,
   });
 }
 
-export function useBinderItem(id: string | null) {
+/** Fetch a single research item by ID */
+export function useResearchItem(id: string | null) {
   return useQuery({
-    queryKey: ["binderItem", id],
+    queryKey: ["researchItem", id],
     queryFn: () => apiFetch<BinderItem>(`/api/binder-items/${id}`),
     enabled: !!id,
   });
 }
 
-export function useCreateBinderItem() {
+/** Create a new research item */
+export function useCreateResearchItem() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (params: {
       projectId: string;
-      parentId: string | null;
-      type: BinderItemType;
       title?: string;
-      afterSortOrder?: string | null;
-      beforeSortOrder?: string | null;
     }) => {
-      const sortOrder = generateKeyBetween(
-        params.afterSortOrder ?? null,
-        params.beforeSortOrder ?? null
-      );
       return apiFetch<BinderItem>(
         `/api/projects/${params.projectId}/binder-items`,
         {
           method: "POST",
           body: JSON.stringify({
-            parentId: params.parentId,
-            sortOrder,
-            type: params.type,
-            title:
-              params.title ??
-              (params.type === "folder" ? "新しいフォルダ" : "無題のシーン"),
-            includeInCompile: params.type !== "research",
+            parentId: null,
+            sortOrder: "a0",
+            type: "research",
+            title: params.title ?? "無題のリサーチ",
+            includeInCompile: false,
             sceneMeta: { characterIds: [], subplotIds: [] },
           }),
         }
@@ -56,13 +48,14 @@ export function useCreateBinderItem() {
     },
     onSuccess: (item) => {
       queryClient.invalidateQueries({
-        queryKey: ["binderItems", item.projectId],
+        queryKey: ["researchItems", item.projectId],
       });
     },
   });
 }
 
-export function useUpdateBinderItem() {
+/** Update a research item */
+export function useUpdateResearchItem() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (params: {
@@ -79,14 +72,15 @@ export function useUpdateBinderItem() {
       ),
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({
-        queryKey: ["binderItems", vars.projectId],
+        queryKey: ["researchItems", vars.projectId],
       });
-      queryClient.invalidateQueries({ queryKey: ["binderItem", vars.id] });
+      queryClient.invalidateQueries({ queryKey: ["researchItem", vars.id] });
     },
   });
 }
 
-export function useDeleteBinderItem() {
+/** Delete a research item */
+export function useDeleteResearchItem() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (params: { id: string; projectId: string }) =>
@@ -96,34 +90,7 @@ export function useDeleteBinderItem() {
       ),
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({
-        queryKey: ["binderItems", vars.projectId],
-      });
-    },
-  });
-}
-
-export function useMoveBinderItem() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (params: {
-      id: string;
-      projectId: string;
-      newParentId: string | null;
-      newSortOrder: string;
-    }) =>
-      apiFetch<BinderItem>(
-        `/api/projects/${params.projectId}/binder-items/${params.id}`,
-        {
-          method: "PUT",
-          body: JSON.stringify({
-            parentId: params.newParentId,
-            sortOrder: params.newSortOrder,
-          }),
-        }
-      ),
-    onSuccess: (_, vars) => {
-      queryClient.invalidateQueries({
-        queryKey: ["binderItems", vars.projectId],
+        queryKey: ["researchItems", vars.projectId],
       });
     },
   });

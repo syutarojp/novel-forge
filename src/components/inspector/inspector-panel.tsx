@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState } from "react";
 import { useUIStore } from "@/stores/ui-store";
-import { useBinderItem, useUpdateBinderItem } from "@/hooks/use-binder";
+import { useResearchItem } from "@/hooks/use-binder";
 import {
   useCodexEntry,
   useCodexEntries,
@@ -13,7 +13,6 @@ import {
 import { useProject } from "@/hooks/use-projects";
 import { getCodexTypeDef } from "@/lib/codex-utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -29,8 +28,6 @@ import {
 } from "@/components/ui/select";
 import {
   FileText,
-  StickyNote,
-  Tags,
   Info,
   SpellCheck,
   Link2,
@@ -45,25 +42,141 @@ import { ProofreadingTab } from "./proofreading-tab";
  * No outer shell/border — the parent provides the container.
  */
 export function InspectorContent({ projectId }: { projectId: string }) {
-  const selectionType = useUIStore((s) => s.selectionType);
-  const selectedItemId = useUIStore((s) => s.selectedItemId);
+  const binderTab = useUIStore((s) => s.binderTab);
   const selectedCodexEntryId = useUIStore((s) => s.selectedCodexEntryId);
+  const selectedResearchItemId = useUIStore((s) => s.selectedResearchItemId);
 
-  if (selectionType === "codex" && selectedCodexEntryId) {
+  if (binderTab === "codex" && selectedCodexEntryId) {
     return <CodexInspectorContent entryId={selectedCodexEntryId} projectId={projectId} />;
   }
 
-  if (selectedItemId) {
-    return <BinderInspectorContent selectedItemId={selectedItemId} projectId={projectId} />;
+  if (binderTab === "research" && selectedResearchItemId) {
+    return <ResearchInspectorContent itemId={selectedResearchItemId} projectId={projectId} />;
   }
 
+  // Default: manuscript inspector
+  return <ManuscriptInspectorContent projectId={projectId} />;
+}
+
+// === Manuscript Inspector Content ===
+
+function ManuscriptInspectorContent({ projectId }: { projectId: string }) {
+  const { data: project } = useProject(projectId);
+  const totalWordCount = useUIStore((s) => s.totalWordCount);
+
+  if (!project) return null;
+
+  const progress = project.targetWordCount > 0
+    ? Math.round((totalWordCount / project.targetWordCount) * 100)
+    : 0;
+
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-3 p-4 text-center text-muted-foreground">
-      <Info className="h-8 w-8 opacity-20" />
-      <div className="space-y-1">
-        <p className="text-sm font-medium">アイテムを選択</p>
-        <p className="text-xs">シーンやエントリを選択すると、詳細をここに表示します</p>
-      </div>
+    <Tabs defaultValue="info" className="flex flex-1 flex-col">
+      <TabsList className="mx-2 mt-1 grid w-auto grid-cols-2">
+        <TabsTrigger value="info" className="text-[11px] gap-1">
+          <FileText className="h-3 w-3" />
+          情報
+        </TabsTrigger>
+        <TabsTrigger value="proofread" className="text-[11px] gap-1">
+          <SpellCheck className="h-3 w-3" />
+          校正
+        </TabsTrigger>
+      </TabsList>
+
+      <ScrollArea className="flex-1">
+        <TabsContent value="info" className="px-3 pb-3">
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs text-muted-foreground">タイトル</Label>
+              <p className="text-sm font-medium">{project.title}</p>
+            </div>
+            <Separator />
+            <div>
+              <Label className="text-xs text-muted-foreground">著者</Label>
+              <p className="text-sm">{project.author || "—"}</p>
+            </div>
+            <Separator />
+            <div>
+              <Label className="text-xs text-muted-foreground">ジャンル</Label>
+              <p className="text-sm">{project.genre || "—"}</p>
+            </div>
+            <Separator />
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>現在の文字数</span>
+              <span className="font-mono text-foreground">{totalWordCount.toLocaleString()}</span>
+            </div>
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>目標文字数</span>
+              <span className="font-mono">
+                {project.targetWordCount > 0
+                  ? project.targetWordCount.toLocaleString()
+                  : "—"}
+              </span>
+            </div>
+            {project.targetWordCount > 0 && (
+              <div>
+                <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                  <span>進捗</span>
+                  <span className="font-mono">{progress}%</span>
+                </div>
+                <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-primary transition-all duration-300"
+                    style={{ width: `${Math.min(progress, 100)}%` }}
+                  />
+                </div>
+              </div>
+            )}
+            <Separator />
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>作成日</span>
+              <span>{new Date(project.createdAt).toLocaleDateString()}</span>
+            </div>
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>更新日</span>
+              <span>{new Date(project.updatedAt).toLocaleDateString()}</span>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="proofread" className="px-3 pb-3">
+          <ProofreadingTab />
+        </TabsContent>
+      </ScrollArea>
+    </Tabs>
+  );
+}
+
+// === Research Inspector Content ===
+
+function ResearchInspectorContent({ itemId, projectId }: { itemId: string; projectId: string }) {
+  const { data: item } = useResearchItem(itemId);
+
+  if (!item) return null;
+
+  return (
+    <div className="flex flex-1 flex-col">
+      <ScrollArea className="flex-1">
+        <div className="px-3 py-3 space-y-3">
+          <div>
+            <Label className="text-xs text-muted-foreground">タイトル</Label>
+            <p className="text-sm font-medium">{item.title}</p>
+          </div>
+          <Separator />
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>文字数</span>
+            <span className="font-mono">{item.wordCount.toLocaleString()}</span>
+          </div>
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>作成日</span>
+            <span>{new Date(item.createdAt).toLocaleDateString()}</span>
+          </div>
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>更新日</span>
+            <span>{new Date(item.updatedAt).toLocaleDateString()}</span>
+          </div>
+        </div>
+      </ScrollArea>
     </div>
   );
 }
@@ -239,255 +352,6 @@ function CodexInspectorContent({ entryId, projectId }: { entryId: string; projec
               </>
             )}
           </div>
-        </TabsContent>
-      </ScrollArea>
-    </Tabs>
-  );
-}
-
-// === Binder Inspector Content ===
-
-function BinderInspectorContent({
-  selectedItemId,
-  projectId,
-}: {
-  selectedItemId: string;
-  projectId: string;
-}) {
-  const { data: item } = useBinderItem(selectedItemId);
-  const { data: project } = useProject(projectId);
-  const updateItem = useUpdateBinderItem();
-
-  const [synopsis, setSynopsis] = useState("");
-  const [notes, setNotes] = useState("");
-  const synopsisTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const notesTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    if (item) {
-      setSynopsis(item.synopsis || "");
-      setNotes(item.notes || "");
-    }
-  }, [item?.id]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const handleSynopsisChange = useCallback(
-    (value: string) => {
-      setSynopsis(value);
-      if (synopsisTimeoutRef.current) clearTimeout(synopsisTimeoutRef.current);
-      synopsisTimeoutRef.current = setTimeout(() => {
-        updateItem.mutate({
-          id: selectedItemId,
-          projectId,
-          data: { synopsis: value },
-        });
-      }, 800);
-    },
-    [selectedItemId, projectId, updateItem]
-  );
-
-  const handleNotesChange = useCallback(
-    (value: string) => {
-      setNotes(value);
-      if (notesTimeoutRef.current) clearTimeout(notesTimeoutRef.current);
-      notesTimeoutRef.current = setTimeout(() => {
-        updateItem.mutate({
-          id: selectedItemId,
-          projectId,
-          data: { notes: value },
-        });
-      }, 800);
-    },
-    [selectedItemId, projectId, updateItem]
-  );
-
-  const handleLabelChange = useCallback(
-    (value: string) => {
-      updateItem.mutate({
-        id: selectedItemId,
-        projectId,
-        data: { labelId: value === "none" ? null : value },
-      });
-    },
-    [selectedItemId, projectId, updateItem]
-  );
-
-  const handleStatusChange = useCallback(
-    (value: string) => {
-      updateItem.mutate({
-        id: selectedItemId,
-        projectId,
-        data: { statusId: value === "none" ? null : value },
-      });
-    },
-    [selectedItemId, projectId, updateItem]
-  );
-
-  const handleCompileToggle = useCallback(() => {
-    if (!item) return;
-    updateItem.mutate({
-      id: selectedItemId,
-      projectId,
-      data: { includeInCompile: !item.includeInCompile },
-    });
-  }, [selectedItemId, projectId, item, updateItem]);
-
-  if (!item) return null;
-
-  const labels = project?.settings.labels ?? [];
-  const statuses = project?.settings.statuses ?? [];
-
-  return (
-    <Tabs defaultValue="synopsis" className="flex flex-1 flex-col">
-      <TabsList className="mx-2 mt-1 grid w-auto grid-cols-4">
-        <TabsTrigger value="synopsis" className="text-[11px] gap-1">
-          <FileText className="h-3 w-3" />
-          あらすじ
-        </TabsTrigger>
-        <TabsTrigger value="notes" className="text-[11px] gap-1">
-          <StickyNote className="h-3 w-3" />
-          メモ
-        </TabsTrigger>
-        <TabsTrigger value="metadata" className="text-[11px] gap-1">
-          <Tags className="h-3 w-3" />
-          メタ
-        </TabsTrigger>
-        <TabsTrigger value="proofread" className="text-[11px] gap-1">
-          <SpellCheck className="h-3 w-3" />
-          校正
-        </TabsTrigger>
-      </TabsList>
-
-      <ScrollArea className="flex-1">
-        <TabsContent value="synopsis" className="px-3 pb-3">
-          <div className="space-y-3">
-            <div>
-              <Label className="text-xs text-muted-foreground">タイトル</Label>
-              <p className="text-sm font-medium">{item.title}</p>
-            </div>
-            <Separator />
-            <div>
-              <Label className="text-xs text-muted-foreground">あらすじ</Label>
-              <Textarea
-                value={synopsis}
-                onChange={(e) => handleSynopsisChange(e.target.value)}
-                placeholder="あらすじを入力..."
-                className="mt-1 min-h-[120px] resize-none text-sm"
-              />
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>文字数</span>
-              <span className="font-mono">{item.wordCount.toLocaleString()}</span>
-            </div>
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>作成日</span>
-              <span>{new Date(item.createdAt).toLocaleDateString()}</span>
-            </div>
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>更新日</span>
-              <span>{new Date(item.updatedAt).toLocaleDateString()}</span>
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="notes" className="px-3 pb-3">
-          <div>
-            <Label className="text-xs text-muted-foreground">メモ</Label>
-            <Textarea
-              value={notes}
-              onChange={(e) => handleNotesChange(e.target.value)}
-              placeholder="メモを入力..."
-              className="mt-1 min-h-[300px] resize-none text-sm"
-            />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="metadata" className="px-3 pb-3">
-          <div className="space-y-4">
-            <div>
-              <Label className="text-xs text-muted-foreground">ラベル</Label>
-              <Select
-                value={item.labelId ?? "none"}
-                onValueChange={handleLabelChange}
-              >
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="ラベルなし" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">ラベルなし</SelectItem>
-                  {labels.map((label) => (
-                    <SelectItem key={label.id} value={label.id}>
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="h-2.5 w-2.5 rounded-full"
-                          style={{ backgroundColor: label.color }}
-                        />
-                        {label.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label className="text-xs text-muted-foreground">ステータス</Label>
-              <Select
-                value={item.statusId ?? "none"}
-                onValueChange={handleStatusChange}
-              >
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="ステータスなし" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">ステータスなし</SelectItem>
-                  {statuses.map((status) => (
-                    <SelectItem key={status.id} value={status.id}>
-                      {status.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <Separator />
-
-            <div className="flex items-center justify-between">
-              <div>
-                <Label className="text-xs text-muted-foreground">
-                  出力に含める
-                </Label>
-                <p className="text-[10px] text-muted-foreground">
-                  エクスポート時にこのアイテムを含めます
-                </p>
-              </div>
-              <button
-                onClick={handleCompileToggle}
-                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                  item.includeInCompile ? "bg-primary" : "bg-input"
-                }`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    item.includeInCompile ? "translate-x-4" : "translate-x-0.5"
-                  }`}
-                />
-              </button>
-            </div>
-
-            <Separator />
-
-            <div>
-              <Label className="text-xs text-muted-foreground">種類</Label>
-              <Badge variant="outline" className="mt-1 capitalize">
-                {item.type}
-              </Badge>
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="proofread" className="px-3 pb-3">
-          <ProofreadingTab />
         </TabsContent>
       </ScrollArea>
     </Tabs>

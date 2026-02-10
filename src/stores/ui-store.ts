@@ -11,25 +11,17 @@ interface UIState {
   activeProjectId: string | null;
   setActiveProjectId: (id: string | null) => void;
 
-  // Binder tab (manuscript vs codex)
+  // Binder tab (manuscript vs codex vs research)
   binderTab: "manuscript" | "codex" | "research";
   setBinderTab: (tab: "manuscript" | "codex" | "research") => void;
 
-  // Selection type (which panel owns the selection)
-  selectionType: "binder" | "codex";
-
-  // Selected binder item
-  selectedItemId: string | null;
-  setSelectedItemId: (id: string | null) => void;
+  // Selected research item (for research tab)
+  selectedResearchItemId: string | null;
+  setSelectedResearchItemId: (id: string | null) => void;
 
   // Selected codex entry
   selectedCodexEntryId: string | null;
   setSelectedCodexEntryId: (id: string | null) => void;
-
-  // Multi-selection for binder
-  selectedItemIds: string[];
-  setSelectedItemIds: (ids: string[]) => void;
-  toggleItemSelection: (id: string) => void;
 
   // Sidebar visibility
   sidebarVisible: boolean;
@@ -44,11 +36,11 @@ interface UIState {
   saveStatus: "saved" | "saving" | "unsaved";
   setSaveStatus: (status: "saved" | "saving" | "unsaved") => void;
 
-  // Total word count (cached)
+  // Total word count (from the full manuscript)
   totalWordCount: number;
   setTotalWordCount: (count: number) => void;
 
-  // Current scene word count
+  // Current scene word count (for status bar — current section or total)
   currentSceneWordCount: number;
   setCurrentSceneWordCount: (count: number) => void;
 
@@ -71,24 +63,11 @@ export const useUIStore = create<UIState>((set) => ({
   binderTab: "manuscript",
   setBinderTab: (tab) => set({ binderTab: tab }),
 
-  selectionType: "binder",
-
-  selectedItemId: null,
-  setSelectedItemId: (id) =>
-    set({ selectedItemId: id, selectedItemIds: id ? [id] : [], selectionType: "binder" }),
+  selectedResearchItemId: null,
+  setSelectedResearchItemId: (id) => set({ selectedResearchItemId: id }),
 
   selectedCodexEntryId: null,
-  setSelectedCodexEntryId: (id) => set({ selectedCodexEntryId: id, selectionType: "codex" }),
-
-  selectedItemIds: [],
-  setSelectedItemIds: (ids) => set({ selectedItemIds: ids }),
-  toggleItemSelection: (id) =>
-    set((state) => {
-      const ids = state.selectedItemIds.includes(id)
-        ? state.selectedItemIds.filter((i) => i !== id)
-        : [...state.selectedItemIds, id];
-      return { selectedItemIds: ids, selectedItemId: ids[ids.length - 1] ?? null, selectionType: "binder" };
-    }),
+  setSelectedCodexEntryId: (id) => set({ selectedCodexEntryId: id }),
 
   sidebarVisible: true,
   toggleSidebar: () => set((s) => ({ sidebarVisible: !s.sidebarVisible })),

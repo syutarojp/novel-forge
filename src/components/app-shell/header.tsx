@@ -2,7 +2,8 @@
 
 import { useUIStore } from "@/stores/ui-store";
 import { useProject } from "@/hooks/use-projects";
-import { useBinderItem, useBinderItems } from "@/hooks/use-binder";
+import { useCodexEntry } from "@/hooks/use-codex";
+import { useResearchItem } from "@/hooks/use-binder";
 import { Button } from "@/components/ui/button";
 import { UserMenu } from "@/components/user-menu";
 import {
@@ -25,31 +26,22 @@ interface HeaderProps {
 
 function Breadcrumbs() {
   const activeProjectId = useUIStore((s) => s.activeProjectId);
-  const selectedItemId = useUIStore((s) => s.selectedItemId);
+  const binderTab = useUIStore((s) => s.binderTab);
+  const selectedCodexEntryId = useUIStore((s) => s.selectedCodexEntryId);
+  const selectedResearchItemId = useUIStore((s) => s.selectedResearchItemId);
   const { data: project } = useProject(activeProjectId);
-  const { data: selectedItem } = useBinderItem(selectedItemId);
-  const { data: items = [] } = useBinderItems(activeProjectId);
+  const { data: codexEntry } = useCodexEntry(selectedCodexEntryId || "", activeProjectId || "");
+  const { data: researchItem } = useResearchItem(selectedResearchItemId || "");
 
-  // Build breadcrumb path: project > parent folder > scene
   const crumbs: string[] = [];
   if (project) crumbs.push(project.title);
 
-  if (selectedItem) {
-    // Find parent chain
-    const parents: string[] = [];
-    let current = selectedItem;
-    while (current?.parentId) {
-      const parent = items.find((i) => i.id === current!.parentId);
-      if (parent) {
-        parents.unshift(parent.title);
-        current = parent;
-      } else {
-        break;
-      }
-    }
-    crumbs.push(...parents);
-    crumbs.push(selectedItem.title);
+  if (binderTab === "codex" && selectedCodexEntryId && codexEntry) {
+    crumbs.push(codexEntry.name);
+  } else if (binderTab === "research" && selectedResearchItemId && researchItem) {
+    crumbs.push(researchItem.title);
   }
+  // manuscript: just project title
 
   if (crumbs.length === 0) return null;
 

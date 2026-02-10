@@ -60,6 +60,8 @@ export const projects = pgTable("projects", {
   author: text("author").notNull().default(""),
   genre: text("genre").notNull().default(""),
   targetWordCount: integer("target_word_count").notNull().default(80000),
+  content: jsonb("content"), // TipTap JSONContent — full manuscript
+  wordCount: integer("word_count").notNull().default(0),
   settings: jsonb("settings").notNull().default({}),
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),

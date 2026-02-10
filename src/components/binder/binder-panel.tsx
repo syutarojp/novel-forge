@@ -1,44 +1,19 @@
 "use client";
 
 import { useMemo } from "react";
-import { useBinderItems, useBinderItem, useCreateBinderItem } from "@/hooks/use-binder";
+import { useResearchItems, useCreateResearchItem } from "@/hooks/use-binder";
 import { useProject } from "@/hooks/use-projects";
 import { useUIStore } from "@/stores/ui-store";
-import { BinderTree } from "./binder-tree";
+import { OutlinePanel } from "./outline-panel";
 import { CodexBrowserPanel } from "@/components/codex/codex-browser-panel";
-import { SceneInfoPanel } from "./scene-info-panel";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FilePlus, Plus, FileText } from "lucide-react";
+import { Plus, FileText, Heading2 } from "lucide-react";
 import type { BinderItem } from "@/types";
 
 interface BinderPanelProps {
   projectId: string;
-}
-
-export interface TreeNode {
-  id: string;
-  name: string;
-  children?: TreeNode[];
-  data: BinderItem;
-}
-
-function buildTree(items: BinderItem[], parentId: string | null): TreeNode[] {
-  return items
-    .filter((item) => item.parentId === parentId)
-    .sort((a, b) => (a.sortOrder < b.sortOrder ? -1 : a.sortOrder > b.sortOrder ? 1 : 0))
-    .map((item) => {
-      const children = buildTree(items, item.id);
-      // scenes, folders, trash can all have children (nesting)
-      // research items are always leaf nodes
-      return {
-        id: item.id,
-        name: item.title,
-        children: item.type === "research" ? undefined : children,
-        data: item,
-      };
-    });
 }
 
 function ResearchPanel({
@@ -48,31 +23,20 @@ function ResearchPanel({
   items: BinderItem[];
   projectId: string;
 }) {
-  const createItem = useCreateBinderItem();
-  const selectedItemId = useUIStore((s) => s.selectedItemId);
-  const setSelectedItemId = useUIStore((s) => s.setSelectedItemId);
+  const createItem = useCreateResearchItem();
+  const selectedItemId = useUIStore((s) => s.selectedResearchItemId);
+  const setSelectedItemId = useUIStore((s) => s.setSelectedResearchItemId);
 
   const researchItems = useMemo(
-    () =>
-      items
-        .filter((i) => i.type === "research")
-        .sort((a, b) => (a.sortOrder < b.sortOrder ? -1 : 1)),
+    () => items.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime()),
     [items]
   );
 
   const handleAdd = () => {
-    const lastSort =
-      researchItems.length > 0
-        ? researchItems[researchItems.length - 1].sortOrder
-        : null;
     createItem.mutate(
       {
         projectId,
-        parentId: null,
-        type: "research",
         title: "無題のリサーチ",
-        afterSortOrder: lastSort,
-        beforeSortOrder: null,
       },
       {
         onSuccess: (item) => setSelectedItemId(item.id),
@@ -126,36 +90,35 @@ function ResearchPanel({
 }
 
 export function BinderPanel({ projectId }: BinderPanelProps) {
-  const { data: items = [] } = useBinderItems(projectId);
+  const { data: researchItems = [] } = useResearchItems(projectId);
   const { data: project } = useProject(projectId);
-  const createItem = useCreateBinderItem();
   const binderTab = useUIStore((s) => s.binderTab);
   const setBinderTab = useUIStore((s) => s.setBinderTab);
-  const selectedItemId = useUIStore((s) => s.selectedItemId);
-  const { data: selectedItem } = useBinderItem(selectedItemId);
+  const editor = useUIStore((s) => s.editorInstance);
 
-  const treeData = useMemo(
-    () => buildTree(items.filter((i) => i.type !== "research"), null),
-    [items]
-  );
+  const handleAddHeading = () => {
+    if (!editor) return;
 
-  const handleAddScene = () => {
-    const manuscriptFolder = items.find(
-      (item) => item.parentId === null && item.type === "folder" && item.title === "原稿"
-    );
-    const parentId = manuscriptFolder?.id ?? null;
-    const siblings = items
-      .filter((item) => item.parentId === parentId)
-      .sort((a, b) => (a.sortOrder < b.sortOrder ? -1 : 1));
-    const lastSortOrder = siblings.length > 0 ? siblings[siblings.length - 1].sortOrder : null;
+    // Insert a new heading at the end of the document
+    const { doc } = editor.state;
+    const endPos = doc.content.size;
 
-    createItem.mutate({
-      projectId,
-      parentId,
-      type: "scene",
-      afterSortOrder: lastSortOrder,
-      beforeSortOrder: null,
-    });
+    editor
+      .chain()
+      .focus()
+      .command(({ tr }) => {
+        // Add a new paragraph with heading at the end
+        tr.insert(endPos, [
+          editor.schema.nodes.paragraph.create(null, [
+            editor.schema.text("\n"),
+          ]),
+          editor.schema.nodes.heading.create({ level: 2 }, [
+            editor.schema.text("新しい見出し"),
+          ]),
+        ]);
+        return true;
+      })
+      .run();
   };
 
   return (
@@ -164,9 +127,14 @@ export function BinderPanel({ projectId }: BinderPanelProps) {
       <div className="flex items-center justify-between border-b px-3 py-2">
         <span className="text-sm font-semibold truncate">{project?.title ?? "バインダー"}</span>
         {binderTab === "manuscript" && (
-          <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={handleAddScene}>
-            <FilePlus className="h-3.5 w-3.5" />
-            シーン
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 gap-1 px-2 text-xs"
+            onClick={handleAddHeading}
+          >
+            <Heading2 className="h-3.5 w-3.5" />
+            見出し
           </Button>
         )}
       </div>
@@ -191,22 +159,13 @@ export function BinderPanel({ projectId }: BinderPanelProps) {
 
         <div className="flex-1 min-h-0 flex flex-col">
           {binderTab === "manuscript" && (
-            <>
-              <ScrollArea className="flex-[3] min-h-0">
-                <BinderTree data={treeData} projectId={projectId} />
-              </ScrollArea>
-              {selectedItem?.type === "scene" && selectedItemId && (
-                <div className="flex-[1] min-h-0 overflow-hidden">
-                  <SceneInfoPanel itemId={selectedItemId} projectId={projectId} />
-                </div>
-              )}
-            </>
+            <OutlinePanel projectId={projectId} editor={editor} />
           )}
           {binderTab === "codex" && (
             <CodexBrowserPanel projectId={projectId} />
           )}
           {binderTab === "research" && (
-            <ResearchPanel items={items} projectId={projectId} />
+            <ResearchPanel items={researchItems} projectId={projectId} />
           )}
         </div>
       </Tabs>

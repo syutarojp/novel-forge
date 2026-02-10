@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db/drizzle";
-import { projects, binderItems } from "@/db/schema";
+import { projects } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { getSession, unauthorized, badRequest } from "@/lib/api-helpers";
 
@@ -27,10 +27,6 @@ export async function POST(request: Request) {
   const userId = session.user!.id;
   const now = new Date();
   const projectId = crypto.randomUUID();
-  const manuscriptId = crypto.randomUUID();
-  const firstSceneId = crypto.randomUUID();
-  const researchId = crypto.randomUUID();
-  const trashId = crypto.randomUUID();
 
   const settings = {
     labels: [
@@ -47,102 +43,43 @@ export async function POST(request: Request) {
     ],
   };
 
-  const defaultSceneMeta = { characterIds: [], subplotIds: [] };
+  // Initial content: a heading and empty paragraph
+  const initialContent = {
+    type: "doc",
+    content: [
+      {
+        type: "heading",
+        attrs: { level: 1 },
+        content: [{ type: "text", text: "第一章" }],
+      },
+      {
+        type: "heading",
+        attrs: { level: 2 },
+        content: [{ type: "text", text: "無題のシーン" }],
+      },
+      {
+        type: "paragraph",
+        content: [],
+      },
+    ],
+  };
 
-  // Transaction: create project + seed binder items
-  const [project] = await db.transaction(async (tx) => {
-    const [p] = await tx
-      .insert(projects)
-      .values({
-        id: projectId,
-        userId,
-        title: body.title.trim(),
-        author: body.author?.trim() ?? "",
-        genre: body.genre?.trim() ?? "",
-        targetWordCount: body.targetWordCount ?? 80000,
-        settings,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .returning();
-
-    await tx.insert(binderItems).values([
-      {
-        id: manuscriptId,
-        projectId,
-        parentId: null,
-        sortOrder: "a0",
-        type: "folder",
-        title: "原稿",
-        synopsis: "",
-        content: null,
-        notes: "",
-        wordCount: 0,
-        labelId: null,
-        statusId: null,
-        includeInCompile: true,
-        sceneMeta: defaultSceneMeta,
-        createdAt: now,
-        updatedAt: now,
-      },
-      {
-        id: firstSceneId,
-        projectId,
-        parentId: manuscriptId,
-        sortOrder: "a0",
-        type: "scene",
-        title: "無題のシーン",
-        synopsis: "",
-        content: null,
-        notes: "",
-        wordCount: 0,
-        labelId: null,
-        statusId: "status-1",
-        includeInCompile: true,
-        sceneMeta: defaultSceneMeta,
-        createdAt: now,
-        updatedAt: now,
-      },
-      {
-        id: researchId,
-        projectId,
-        parentId: null,
-        sortOrder: "a1",
-        type: "folder",
-        title: "リサーチ",
-        synopsis: "",
-        content: null,
-        notes: "",
-        wordCount: 0,
-        labelId: null,
-        statusId: null,
-        includeInCompile: false,
-        sceneMeta: defaultSceneMeta,
-        createdAt: now,
-        updatedAt: now,
-      },
-      {
-        id: trashId,
-        projectId,
-        parentId: null,
-        sortOrder: "z0",
-        type: "trash",
-        title: "ゴミ箱",
-        synopsis: "",
-        content: null,
-        notes: "",
-        wordCount: 0,
-        labelId: null,
-        statusId: null,
-        includeInCompile: false,
-        sceneMeta: defaultSceneMeta,
-        createdAt: now,
-        updatedAt: now,
-      },
-    ]);
-
-    return [p];
-  });
+  const [project] = await db
+    .insert(projects)
+    .values({
+      id: projectId,
+      userId,
+      title: body.title.trim(),
+      author: body.author?.trim() ?? "",
+      genre: body.genre?.trim() ?? "",
+      targetWordCount: body.targetWordCount ?? 80000,
+      content: initialContent,
+      wordCount: 0,
+      settings,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning();
 
   return NextResponse.json(project, { status: 201 });
 }

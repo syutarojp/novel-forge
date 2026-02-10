@@ -7,6 +7,8 @@ export interface Project {
   author: string;
   genre: string;
   targetWordCount: number;
+  content: JSONContent | null;
+  wordCount: number;
   settings: ProjectSettings;
   createdAt: Date;
   updatedAt: Date;
@@ -28,34 +30,31 @@ export interface StatusDef {
   name: string;
 }
 
-// === Binder Item ===
-export type BinderItemType = "folder" | "scene" | "research" | "trash";
-
-export interface SceneMeta {
-  povCharacterId?: string;
-  locationId?: string;
-  characterIds: string[];
-  subplotIds: string[];
-  goal?: string;
-  conflict?: string;
-  outcome?: string;
+// === Outline (derived from project content headings) ===
+export interface OutlineItem {
+  id: string;       // e.g. "heading-0", "heading-1"
+  level: number;    // 1, 2, or 3
+  title: string;
+  pos: number;      // ProseMirror node position
+  endPos: number;   // end of this section (start of next heading or end of doc)
+  wordCount: number;
+  children: OutlineItem[];
 }
+
+// === Binder Item (research items only) ===
+export type BinderItemType = "research";
 
 export interface BinderItem {
   id: string;
   projectId: string;
   parentId: string | null;
-  sortOrder: string; // fractional indexing string
+  sortOrder: string;
   type: BinderItemType;
   title: string;
   synopsis: string;
   content: JSONContent | null;
   notes: string;
   wordCount: number;
-  labelId: string | null;
-  statusId: string | null;
-  includeInCompile: boolean;
-  sceneMeta: SceneMeta;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -96,7 +95,6 @@ export interface CodexRelation {
 // === Snapshot ===
 export interface Snapshot {
   id: string;
-  binderItemId: string;
   projectId: string;
   title: string;
   content: JSONContent | null;

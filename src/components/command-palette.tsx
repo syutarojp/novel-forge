@@ -2,7 +2,8 @@
 
 import { useEffect } from "react";
 import { useUIStore } from "@/stores/ui-store";
-import { useBinderItems } from "@/hooks/use-binder";
+import { useManuscriptContent } from "@/hooks/use-manuscript";
+import { getFlatHeadings } from "@/lib/outline";
 import { useCodexEntries } from "@/hooks/use-codex";
 import { getCodexTypeDef } from "@/lib/codex-utils";
 import {
@@ -17,8 +18,6 @@ import {
   FileText,
   SpellCheck,
   Download,
-  FilePlus,
-  FolderPlus,
   PanelLeft,
   PenLine,
   BookOpen,
@@ -29,30 +28,26 @@ interface CommandPaletteProps {
   projectId: string | null;
   onCompile?: () => void;
   onProofread?: () => void;
-  onAddScene?: () => void;
-  onAddFolder?: () => void;
 }
 
 export function CommandPalette({
   projectId,
   onCompile,
   onProofread,
-  onAddScene,
-  onAddFolder,
 }: CommandPaletteProps) {
   const {
     commandPaletteOpen,
     setCommandPaletteOpen,
-    setSelectedItemId,
     setSelectedCodexEntryId,
     setBinderTab,
     toggleSidebar,
     setMode,
+    editorInstance: editor,
   } = useUIStore();
 
-  const { data: items = [] } = useBinderItems(projectId);
+  const { data: manuscriptData } = useManuscriptContent(projectId);
   const { data: codexEntries = [] } = useCodexEntries(projectId);
-  const scenes = items.filter((item) => item.type === "scene");
+  const headings = getFlatHeadings(manuscriptData?.content ?? null);
 
   // Register global keyboard shortcut
   useEffect(() => {
@@ -72,26 +67,46 @@ export function CommandPalette({
     setCommandPaletteOpen(false);
   };
 
+  const scrollToHeading = (nodeIndex: number) => {
+    if (!editor) return;
+    let headingCount = 0;
+    let targetPos: number | null = null;
+    editor.state.doc.descendants((node, pos) => {
+      if (node.type.name === "heading") {
+        if (headingCount === nodeIndex) {
+          targetPos = pos;
+          return false;
+        }
+        headingCount++;
+      }
+    });
+    if (targetPos !== null) {
+      editor.chain().setTextSelection(targetPos).scrollIntoView().run();
+    }
+  };
+
   return (
     <CommandDialog open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen}>
       <CommandInput placeholder="コマンドを入力..." />
       <CommandList>
         <CommandEmpty>結果が見つかりません</CommandEmpty>
 
-        {scenes.length > 0 && (
-          <CommandGroup heading="移動 — シーン">
-            {scenes.map((scene) => (
+        {headings.length > 0 && (
+          <CommandGroup heading="移動 — 原稿">
+            {headings.map((h, idx) => (
               <CommandItem
-                key={scene.id}
+                key={idx}
                 onSelect={() =>
                   closeAndExecute(() => {
                     setBinderTab("manuscript");
-                    setSelectedItemId(scene.id);
+                    scrollToHeading(idx);
                   })
                 }
               >
                 <FileText className="mr-2 h-4 w-4" />
-                <span>{scene.title}</span>
+                <span className={h.level > 1 ? `ml-${(h.level - 1) * 4}` : ""}>
+                  {"#".repeat(h.level)} {h.title}
+                </span>
               </CommandItem>
             ))}
           </CommandGroup>
@@ -134,18 +149,6 @@ export function CommandPalette({
             <CommandItem onSelect={() => closeAndExecute(onCompile)}>
               <Download className="mr-2 h-4 w-4" />
               <span>エクスポート</span>
-            </CommandItem>
-          )}
-          {onAddScene && (
-            <CommandItem onSelect={() => closeAndExecute(onAddScene)}>
-              <FilePlus className="mr-2 h-4 w-4" />
-              <span>新規シーン</span>
-            </CommandItem>
-          )}
-          {onAddFolder && (
-            <CommandItem onSelect={() => closeAndExecute(onAddFolder)}>
-              <FolderPlus className="mr-2 h-4 w-4" />
-              <span>新規フォルダ</span>
             </CommandItem>
           )}
         </CommandGroup>

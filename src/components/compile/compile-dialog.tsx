@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useProject } from "@/hooks/use-projects";
-import { useBinderItems } from "@/hooks/use-binder";
-import { useUIStore } from "@/stores/ui-store";
+import { useManuscriptContent } from "@/hooks/use-manuscript";
+import { getFlatHeadings } from "@/lib/outline";
 import { compileToDocx, downloadMarkdown } from "@/lib/compile/compile-docx";
 import {
   Dialog,
@@ -30,22 +30,17 @@ export function CompileDialog({
   projectId,
 }: CompileDialogProps) {
   const { data: project } = useProject(projectId);
-  const { data: items = [] } = useBinderItems(projectId);
+  const { data: manuscriptData } = useManuscriptContent(projectId);
   const [exporting, setExporting] = useState(false);
 
-  const compilableScenes = items.filter(
-    (item) => item.includeInCompile && item.type === "scene"
-  );
-  const totalWords = compilableScenes.reduce(
-    (sum, item) => sum + item.wordCount,
-    0
-  );
+  const headings = getFlatHeadings(manuscriptData?.content ?? null);
+  const wordCount = manuscriptData?.wordCount ?? 0;
 
   const handleExportDocx = async () => {
-    if (!project) return;
+    if (!project || !manuscriptData?.content) return;
     setExporting(true);
     try {
-      await compileToDocx(project, items);
+      await compileToDocx(project, manuscriptData.content);
     } catch (err) {
       console.error("Export failed:", err);
     } finally {
@@ -54,8 +49,8 @@ export function CompileDialog({
   };
 
   const handleExportMarkdown = () => {
-    if (!project) return;
-    downloadMarkdown(project, items);
+    if (!project || !manuscriptData?.content) return;
+    downloadMarkdown(project, manuscriptData.content);
   };
 
   return (
@@ -71,13 +66,13 @@ export function CompileDialog({
         <div className="space-y-4 py-4">
           <div className="rounded-lg border bg-muted/50 p-3">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">シーン数</span>
-              <span className="font-medium">{compilableScenes.length}</span>
+              <span className="text-muted-foreground">セクション数</span>
+              <span className="font-medium">{headings.length}</span>
             </div>
             <div className="mt-1 flex items-center justify-between text-sm">
               <span className="text-muted-foreground">合計文字数</span>
               <span className="font-medium">
-                {totalWords.toLocaleString()}
+                {wordCount.toLocaleString()}
               </span>
             </div>
           </div>

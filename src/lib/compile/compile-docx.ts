@@ -9,7 +9,7 @@ import {
 } from "docx";
 import { saveAs } from "file-saver";
 import type { JSONContent } from "@tiptap/react";
-import type { BinderItem, Project } from "@/types";
+import type { Project } from "@/types";
 import { jsonToMarkdown } from "./json-to-text";
 
 function jsonToDocxElements(content: JSONContent | null): Paragraph[] {
@@ -125,35 +125,10 @@ function extractTextRuns(node: JSONContent): TextRun[] {
   });
 }
 
-function getOrderedScenes(
-  items: BinderItem[],
-  parentId: string | null
-): BinderItem[] {
-  const children = items
-    .filter((item) => item.parentId === parentId)
-    .sort((a, b) => (a.sortOrder < b.sortOrder ? -1 : 1));
-
-  const result: BinderItem[] = [];
-  for (const child of children) {
-    if (!child.includeInCompile) continue;
-
-    if (child.type === "scene") {
-      result.push(child);
-    } else if (child.type === "folder") {
-      // Add folder title as a heading scene
-      result.push(child);
-      result.push(...getOrderedScenes(items, child.id));
-    }
-  }
-  return result;
-}
-
 export async function compileToDocx(
   project: Project,
-  items: BinderItem[]
+  content: JSONContent | null
 ): Promise<void> {
-  const orderedItems = getOrderedScenes(items, null);
-
   const sections: Paragraph[] = [];
 
   // Title page
@@ -181,29 +156,8 @@ export async function compileToDocx(
     })
   );
 
-  // Content
-  for (const item of orderedItems) {
-    if (item.type === "folder") {
-      sections.push(
-        new Paragraph({
-          heading: HeadingLevel.HEADING_1,
-          children: [new TextRun({ text: item.title })],
-          spacing: { before: 480, after: 240 },
-        })
-      );
-    } else {
-      // Scene title
-      sections.push(
-        new Paragraph({
-          heading: HeadingLevel.HEADING_2,
-          children: [new TextRun({ text: item.title })],
-          spacing: { before: 360, after: 120 },
-        })
-      );
-      // Scene content
-      sections.push(...jsonToDocxElements(item.content));
-    }
-  }
+  // Content — directly from the document
+  sections.push(...jsonToDocxElements(content));
 
   const doc = new Document({
     sections: [
@@ -220,30 +174,22 @@ export async function compileToDocx(
 
 export function compileToMarkdown(
   project: Project,
-  items: BinderItem[]
+  content: JSONContent | null
 ): string {
-  const orderedItems = getOrderedScenes(items, null);
-
   let md = `# ${project.title}\n\n`;
   if (project.author) {
     md += `*by ${project.author}*\n\n`;
   }
   md += "---\n\n";
-
-  for (const item of orderedItems) {
-    if (item.type === "folder") {
-      md += `## ${item.title}\n\n`;
-    } else {
-      md += `### ${item.title}\n\n`;
-      md += jsonToMarkdown(item.content) + "\n\n";
-    }
-  }
-
+  md += jsonToMarkdown(content);
   return md;
 }
 
-export function downloadMarkdown(project: Project, items: BinderItem[]): void {
-  const md = compileToMarkdown(project, items);
+export function downloadMarkdown(
+  project: Project,
+  content: JSONContent | null
+): void {
+  const md = compileToMarkdown(project, content);
   const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
   saveAs(blob, `${project.title}.md`);
 }

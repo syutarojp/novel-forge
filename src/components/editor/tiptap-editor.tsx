@@ -9,11 +9,10 @@ import CharacterCount from "@tiptap/extension-character-count";
 import { ProofreadingDecoration } from "@/lib/proofreading/decorations";
 import { useUIStore } from "@/stores/ui-store";
 import { useProofreadingStore } from "@/stores/proofreading-store";
-import { useBinderItem, useUpdateBinderItem } from "@/hooks/use-binder";
+import { useManuscriptContent, useUpdateManuscriptContent } from "@/hooks/use-manuscript";
 import { EditorToolbar } from "./editor-toolbar";
 
 interface TipTapEditorProps {
-  itemId: string;
   projectId: string;
   readOnly?: boolean;
 }
@@ -29,15 +28,15 @@ function countWords(text: string): number {
   return cjkCount + words.length;
 }
 
-export function TipTapEditor({ itemId, projectId, readOnly = false }: TipTapEditorProps) {
-  const { data: item } = useBinderItem(itemId);
-  const updateItem = useUpdateBinderItem();
+export function TipTapEditor({ projectId, readOnly = false }: TipTapEditorProps) {
+  const { data: manuscriptData } = useManuscriptContent(projectId);
+  const updateContent = useUpdateManuscriptContent();
   const setSaveStatus = useUIStore((s) => s.setSaveStatus);
   const setEditorInstance = useUIStore((s) => s.setEditorInstance);
+  const setTotalWordCount = useUIStore((s) => s.setTotalWordCount);
   const setCurrentSceneWordCount = useUIStore((s) => s.setCurrentSceneWordCount);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isInitializedRef = useRef(false);
-  const currentItemIdRef = useRef(itemId);
 
   const editor = useEditor({
     extensions: [
@@ -46,13 +45,13 @@ export function TipTapEditor({ itemId, projectId, readOnly = false }: TipTapEdit
       }),
       UnderlineExt,
       Placeholder.configure({
-        placeholder: "ここに本文を入力...",
+        placeholder: "原稿を書き始めましょう...",
       }),
       CharacterCount,
       ProofreadingDecoration,
     ],
     editable: !readOnly,
-    content: item?.content || "",
+    content: manuscriptData?.content || "",
     onUpdate: ({ editor }) => {
       if (!isInitializedRef.current) return;
       setSaveStatus("unsaved");
@@ -66,16 +65,14 @@ export function TipTapEditor({ itemId, projectId, readOnly = false }: TipTapEdit
         const text = editor.getText();
         const wc = countWords(text);
 
+        setTotalWordCount(wc);
         setCurrentSceneWordCount(wc);
         setSaveStatus("saving");
-        updateItem.mutate(
+        updateContent.mutate(
           {
-            id: currentItemIdRef.current,
             projectId,
-            data: {
-              content: json,
-              wordCount: wc,
-            },
+            content: json,
+            wordCount: wc,
           },
           {
             onSuccess: () => setSaveStatus("saved"),
@@ -87,22 +84,22 @@ export function TipTapEditor({ itemId, projectId, readOnly = false }: TipTapEdit
     immediatelyRender: false,
   });
 
-  // Update content when item changes (switching scenes)
+  // Update content when manuscript data loads
   useEffect(() => {
-    if (editor && item) {
-      currentItemIdRef.current = itemId;
+    if (editor && manuscriptData) {
       isInitializedRef.current = false;
-      editor.commands.setContent(item.content || "");
+      editor.commands.setContent(manuscriptData.content || "");
       // Update word count for initial load
       const text = editor.getText();
       const wc = countWords(text);
+      setTotalWordCount(wc);
       setCurrentSceneWordCount(wc);
       // Small delay so the onUpdate doesn't fire for the setContent
       requestAnimationFrame(() => {
         isInitializedRef.current = true;
       });
     }
-  }, [editor, itemId, item?.id, setCurrentSceneWordCount]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [editor, manuscriptData?.content, setTotalWordCount, setCurrentSceneWordCount]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Publish editor instance to store for cross-component access
   useEffect(() => {
@@ -136,10 +133,10 @@ export function TipTapEditor({ itemId, projectId, readOnly = false }: TipTapEdit
     };
   }, []);
 
-  if (!item) {
+  if (!manuscriptData) {
     return (
       <div className="flex h-full items-center justify-center text-muted-foreground">
-        シーンを選択して執筆を開始してください
+        読み込み中...
       </div>
     );
   }
