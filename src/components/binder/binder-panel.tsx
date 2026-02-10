@@ -212,11 +212,11 @@ export function BinderPanel({ projectId }: BinderPanelProps) {
         <div className="flex-1 min-h-0 flex flex-col">
           {binderTab === "manuscript" && (
             <>
-              <ScrollArea className={selectedItem?.type === "scene" ? "h-48 shrink-0" : "flex-1 min-h-0"}>
+              <ScrollArea className="flex-1 min-h-0">
                 <BinderTree data={treeData} projectId={projectId} />
               </ScrollArea>
               {selectedItem?.type === "scene" && selectedItemId && (
-                <div className="flex-1 min-h-0">
+                <div className="h-44 shrink-0">
                   <SceneInfoPanel itemId={selectedItemId} projectId={projectId} />
                 </div>
               )}
