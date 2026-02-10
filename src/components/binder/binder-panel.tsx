@@ -50,7 +50,7 @@ export function BinderPanel({ projectId }: BinderPanelProps) {
   const handleAddScene = () => {
     // Find the manuscript folder or first folder
     const manuscriptFolder = items.find(
-      (item) => item.parentId === null && item.type === "folder" && item.title === "Manuscript"
+      (item) => item.parentId === null && item.type === "folder" && item.title === "原稿"
     );
     const parentId = manuscriptFolder?.id ?? null;
     const siblings = items
@@ -88,7 +88,7 @@ export function BinderPanel({ projectId }: BinderPanelProps) {
     <div className="flex h-full flex-col border-r bg-muted/30">
       <div className="flex items-center justify-between border-b px-3 py-2">
         <span className="text-xs font-semibold uppercase text-muted-foreground">
-          Binder
+          バインダー
         </span>
         <div className="flex items-center gap-0.5">
           <Tooltip>
@@ -102,7 +102,7 @@ export function BinderPanel({ projectId }: BinderPanelProps) {
                 <FilePlus className="h-3.5 w-3.5" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Add Scene</TooltipContent>
+            <TooltipContent>シーン追加</TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -115,7 +115,7 @@ export function BinderPanel({ projectId }: BinderPanelProps) {
                 <FolderPlus className="h-3.5 w-3.5" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Add Folder</TooltipContent>
+            <TooltipContent>フォルダ追加</TooltipContent>
           </Tooltip>
         </div>
       </div>

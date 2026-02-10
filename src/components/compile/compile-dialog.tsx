@@ -62,20 +62,20 @@ export function CompileDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Compile & Export</DialogTitle>
+          <DialogTitle>出力</DialogTitle>
           <DialogDescription>
-            Export your manuscript to a file format
+            原稿をファイルとして出力します
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           <div className="rounded-lg border bg-muted/50 p-3">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Scenes included</span>
+              <span className="text-muted-foreground">シーン数</span>
               <span className="font-medium">{compilableScenes.length}</span>
             </div>
             <div className="mt-1 flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Total words</span>
+              <span className="text-muted-foreground">合計文字数</span>
               <span className="font-medium">
                 {totalWords.toLocaleString()}
               </span>
@@ -85,7 +85,7 @@ export function CompileDialog({
           <Separator />
 
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Export Format</Label>
+            <Label className="text-sm font-medium">出力形式</Label>
             <div className="grid grid-cols-2 gap-3">
               <Button
                 variant="outline"
@@ -114,7 +114,7 @@ export function CompileDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Close
+            閉じる
           </Button>
         </DialogFooter>
       </DialogContent>

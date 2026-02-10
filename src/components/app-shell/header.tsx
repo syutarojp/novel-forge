@@ -42,7 +42,7 @@ export function Header({ onCompile }: HeaderProps) {
               </Link>
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Back to Projects</TooltipContent>
+          <TooltipContent>プロジェクト一覧に戻る</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -55,7 +55,7 @@ export function Header({ onCompile }: HeaderProps) {
               <PanelLeft className={`h-4 w-4 ${binderVisible ? "text-foreground" : "text-muted-foreground"}`} />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Toggle Binder</TooltipContent>
+          <TooltipContent>バインダー表示切替</TooltipContent>
         </Tooltip>
         <span className="text-sm font-semibold">{project?.title ?? "NovelForge"}</span>
       </div>
@@ -74,7 +74,7 @@ export function Header({ onCompile }: HeaderProps) {
               <Download className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Compile & Export</TooltipContent>
+          <TooltipContent>出力</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -87,7 +87,7 @@ export function Header({ onCompile }: HeaderProps) {
               <BookMarked className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Codex</TooltipContent>
+          <TooltipContent>コーデックス</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -100,7 +100,7 @@ export function Header({ onCompile }: HeaderProps) {
               <PanelRight className={`h-4 w-4 ${inspectorVisible ? "text-foreground" : "text-muted-foreground"}`} />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Toggle Inspector</TooltipContent>
+          <TooltipContent>インスペクター表示切替</TooltipContent>
         </Tooltip>
       </div>
     </header>

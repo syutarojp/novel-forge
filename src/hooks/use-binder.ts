@@ -47,7 +47,7 @@ export function useCreateBinderItem() {
         parentId: params.parentId,
         sortOrder,
         type: params.type,
-        title: params.title ?? (params.type === "folder" ? "New Folder" : "Untitled Scene"),
+        title: params.title ?? (params.type === "folder" ? "新しいフォルダ" : "無題のシーン"),
         synopsis: "",
         content: null,
         notes: "",

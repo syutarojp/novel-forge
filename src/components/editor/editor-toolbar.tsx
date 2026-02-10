@@ -70,25 +70,25 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
         onClick={() => editor.chain().focus().toggleBold().run()}
         isActive={editor.isActive("bold")}
         icon={Bold}
-        label="Bold (Ctrl+B)"
+        label="太字 (Ctrl+B)"
       />
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleItalic().run()}
         isActive={editor.isActive("italic")}
         icon={Italic}
-        label="Italic (Ctrl+I)"
+        label="斜体 (Ctrl+I)"
       />
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleUnderline().run()}
         isActive={editor.isActive("underline")}
         icon={Underline}
-        label="Underline (Ctrl+U)"
+        label="下線 (Ctrl+U)"
       />
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleStrike().run()}
         isActive={editor.isActive("strike")}
         icon={Strikethrough}
-        label="Strikethrough"
+        label="取り消し線"
       />
 
       <Separator orientation="vertical" className="mx-1 h-6" />
@@ -97,19 +97,19 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
         onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
         isActive={editor.isActive("heading", { level: 1 })}
         icon={Heading1}
-        label="Heading 1"
+        label="見出し1"
       />
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
         isActive={editor.isActive("heading", { level: 2 })}
         icon={Heading2}
-        label="Heading 2"
+        label="見出し2"
       />
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
         isActive={editor.isActive("heading", { level: 3 })}
         icon={Heading3}
-        label="Heading 3"
+        label="見出し3"
       />
 
       <Separator orientation="vertical" className="mx-1 h-6" />
@@ -118,24 +118,24 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
         onClick={() => editor.chain().focus().toggleBulletList().run()}
         isActive={editor.isActive("bulletList")}
         icon={List}
-        label="Bullet List"
+        label="箇条書き"
       />
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleOrderedList().run()}
         isActive={editor.isActive("orderedList")}
         icon={ListOrdered}
-        label="Ordered List"
+        label="番号リスト"
       />
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBlockquote().run()}
         isActive={editor.isActive("blockquote")}
         icon={Quote}
-        label="Blockquote"
+        label="引用"
       />
       <ToolbarButton
         onClick={() => editor.chain().focus().setHorizontalRule().run()}
         icon={Minus}
-        label="Horizontal Rule"
+        label="水平線"
       />
 
       <Separator orientation="vertical" className="mx-1 h-6" />
@@ -143,7 +143,7 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
       <ToolbarButton
         onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}
         icon={RemoveFormatting}
-        label="Clear Formatting"
+        label="書式クリア"
       />
 
       <div className="flex-1" />
@@ -152,13 +152,13 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
         onClick={() => editor.chain().focus().undo().run()}
         disabled={!editor.can().undo()}
         icon={Undo}
-        label="Undo (Ctrl+Z)"
+        label="元に戻す (Ctrl+Z)"
       />
       <ToolbarButton
         onClick={() => editor.chain().focus().redo().run()}
         disabled={!editor.can().redo()}
         icon={Redo}
-        label="Redo (Ctrl+Shift+Z)"
+        label="やり直し (Ctrl+Shift+Z)"
       />
     </div>
   );

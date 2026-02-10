@@ -17,7 +17,7 @@ export function StatusBar() {
     <div className="flex h-7 items-center justify-between border-t bg-muted/50 px-4 text-xs text-muted-foreground">
       <div className="flex items-center gap-4">
         <span>
-          {totalWordCount.toLocaleString()} words
+          {totalWordCount.toLocaleString()} 文字
           {targetWordCount > 0 && (
             <span className="ml-1">
               / {targetWordCount.toLocaleString()} ({progress.toFixed(0)}%)
@@ -29,19 +29,19 @@ export function StatusBar() {
         {saveStatus === "saved" && (
           <>
             <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
-            <span>Saved</span>
+            <span>保存済み</span>
           </>
         )}
         {saveStatus === "saving" && (
           <>
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            <span>Saving...</span>
+            <span>保存中...</span>
           </>
         )}
         {saveStatus === "unsaved" && (
           <>
             <AlertCircle className="h-3.5 w-3.5 text-yellow-500" />
-            <span>Unsaved changes</span>
+            <span>未保存</span>
           </>
         )}
       </div>

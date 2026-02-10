@@ -42,7 +42,7 @@ export function TipTapEditor({ itemId, projectId, readOnly = false }: TipTapEdit
       }),
       UnderlineExt,
       Placeholder.configure({
-        placeholder: "Start writing...",
+        placeholder: "ここに本文を入力...",
       }),
       CharacterCount,
     ],

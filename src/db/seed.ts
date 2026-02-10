@@ -3,17 +3,17 @@ import { db } from "./index";
 import type { Project, BinderItem } from "@/types";
 
 const DEFAULT_LABELS: Project["settings"]["labels"] = [
-  { id: "label-1", name: "Chapter", color: "#3b82f6" },
-  { id: "label-2", name: "Scene", color: "#10b981" },
-  { id: "label-3", name: "Idea", color: "#f59e0b" },
-  { id: "label-4", name: "Revision", color: "#ef4444" },
+  { id: "label-1", name: "章", color: "#3b82f6" },
+  { id: "label-2", name: "シーン", color: "#10b981" },
+  { id: "label-3", name: "アイデア", color: "#f59e0b" },
+  { id: "label-4", name: "要修正", color: "#ef4444" },
 ];
 
 const DEFAULT_STATUSES: Project["settings"]["statuses"] = [
-  { id: "status-1", name: "To Do" },
-  { id: "status-2", name: "Draft" },
-  { id: "status-3", name: "Revised" },
-  { id: "status-4", name: "Done" },
+  { id: "status-1", name: "未着手" },
+  { id: "status-2", name: "下書き" },
+  { id: "status-3", name: "推敲済み" },
+  { id: "status-4", name: "完了" },
 ];
 
 export async function createProject(
@@ -52,7 +52,7 @@ export async function createProject(
       parentId: null,
       sortOrder: "a0",
       type: "folder",
-      title: "Manuscript",
+      title: "原稿",
       synopsis: "",
       content: null,
       notes: "",
@@ -70,7 +70,7 @@ export async function createProject(
       parentId: manuscriptId,
       sortOrder: "a0",
       type: "scene",
-      title: "Untitled Scene",
+      title: "無題のシーン",
       synopsis: "",
       content: null,
       notes: "",
@@ -88,7 +88,7 @@ export async function createProject(
       parentId: null,
       sortOrder: "a1",
       type: "folder",
-      title: "Research",
+      title: "リサーチ",
       synopsis: "",
       content: null,
       notes: "",
@@ -106,7 +106,7 @@ export async function createProject(
       parentId: null,
       sortOrder: "z0",
       type: "trash",
-      title: "Trash",
+      title: "ゴミ箱",
       synopsis: "",
       content: null,
       notes: "",

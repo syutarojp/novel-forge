@@ -6,9 +6,9 @@ import { cn } from "@/lib/utils";
 import { Map, PenLine, BookOpen } from "lucide-react";
 
 const modes: { value: AppMode; label: string; icon: React.ReactNode }[] = [
-  { value: "plan", label: "Plan", icon: <Map className="h-4 w-4" /> },
-  { value: "write", label: "Write", icon: <PenLine className="h-4 w-4" /> },
-  { value: "review", label: "Review", icon: <BookOpen className="h-4 w-4" /> },
+  { value: "plan", label: "プラン", icon: <Map className="h-4 w-4" /> },
+  { value: "write", label: "執筆", icon: <PenLine className="h-4 w-4" /> },
+  { value: "review", label: "レビュー", icon: <BookOpen className="h-4 w-4" /> },
 ];
 
 export function ModeTabBar() {

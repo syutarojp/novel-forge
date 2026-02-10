@@ -117,11 +117,11 @@ export function InspectorPanel({ projectId }: InspectorPanelProps) {
       <div className="flex h-full flex-col border-l bg-muted/30">
         <div className="flex items-center border-b px-3 py-2">
           <span className="text-xs font-semibold uppercase text-muted-foreground">
-            Inspector
+            インスペクター
           </span>
         </div>
         <div className="flex flex-1 items-center justify-center p-4 text-center text-sm text-muted-foreground">
-          Select an item to view details
+          アイテムを選択して詳細を表示
         </div>
       </div>
     );
@@ -140,13 +140,13 @@ export function InspectorPanel({ projectId }: InspectorPanelProps) {
       <Tabs defaultValue="synopsis" className="flex flex-1 flex-col">
         <TabsList className="mx-2 mt-2 grid w-auto grid-cols-3">
           <TabsTrigger value="synopsis" className="text-xs">
-            Synopsis
+            あらすじ
           </TabsTrigger>
           <TabsTrigger value="notes" className="text-xs">
-            Notes
+            メモ
           </TabsTrigger>
           <TabsTrigger value="metadata" className="text-xs">
-            Metadata
+            メタデータ
           </TabsTrigger>
         </TabsList>
 
@@ -154,30 +154,30 @@ export function InspectorPanel({ projectId }: InspectorPanelProps) {
           <TabsContent value="synopsis" className="px-3 pb-3">
             <div className="space-y-3">
               <div>
-                <Label className="text-xs text-muted-foreground">Title</Label>
+                <Label className="text-xs text-muted-foreground">タイトル</Label>
                 <p className="text-sm font-medium">{item.title}</p>
               </div>
               <Separator />
               <div>
-                <Label className="text-xs text-muted-foreground">Synopsis</Label>
+                <Label className="text-xs text-muted-foreground">あらすじ</Label>
                 <Textarea
                   value={synopsis}
                   onChange={(e) => handleSynopsisChange(e.target.value)}
-                  placeholder="Write a brief synopsis..."
+                  placeholder="あらすじを入力..."
                   className="mt-1 min-h-[120px] resize-none text-sm"
                 />
               </div>
               <Separator />
               <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Word Count</span>
+                <span>文字数</span>
                 <span className="font-mono">{item.wordCount.toLocaleString()}</span>
               </div>
               <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Created</span>
+                <span>作成日</span>
                 <span>{new Date(item.createdAt).toLocaleDateString()}</span>
               </div>
               <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Modified</span>
+                <span>更新日</span>
                 <span>{new Date(item.updatedAt).toLocaleDateString()}</span>
               </div>
             </div>
@@ -185,11 +185,11 @@ export function InspectorPanel({ projectId }: InspectorPanelProps) {
 
           <TabsContent value="notes" className="px-3 pb-3">
             <div>
-              <Label className="text-xs text-muted-foreground">Notes</Label>
+              <Label className="text-xs text-muted-foreground">メモ</Label>
               <Textarea
                 value={notes}
                 onChange={(e) => handleNotesChange(e.target.value)}
-                placeholder="Add notes about this item..."
+                placeholder="メモを入力..."
                 className="mt-1 min-h-[300px] resize-none text-sm"
               />
             </div>
@@ -198,16 +198,16 @@ export function InspectorPanel({ projectId }: InspectorPanelProps) {
           <TabsContent value="metadata" className="px-3 pb-3">
             <div className="space-y-4">
               <div>
-                <Label className="text-xs text-muted-foreground">Label</Label>
+                <Label className="text-xs text-muted-foreground">ラベル</Label>
                 <Select
                   value={item.labelId ?? "none"}
                   onValueChange={handleLabelChange}
                 >
                   <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="No label" />
+                    <SelectValue placeholder="ラベルなし" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">No label</SelectItem>
+                    <SelectItem value="none">ラベルなし</SelectItem>
                     {labels.map((label) => (
                       <SelectItem key={label.id} value={label.id}>
                         <div className="flex items-center gap-2">
@@ -224,16 +224,16 @@ export function InspectorPanel({ projectId }: InspectorPanelProps) {
               </div>
 
               <div>
-                <Label className="text-xs text-muted-foreground">Status</Label>
+                <Label className="text-xs text-muted-foreground">ステータス</Label>
                 <Select
                   value={item.statusId ?? "none"}
                   onValueChange={handleStatusChange}
                 >
                   <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="No status" />
+                    <SelectValue placeholder="ステータスなし" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">No status</SelectItem>
+                    <SelectItem value="none">ステータスなし</SelectItem>
                     {statuses.map((status) => (
                       <SelectItem key={status.id} value={status.id}>
                         {status.name}
@@ -248,10 +248,10 @@ export function InspectorPanel({ projectId }: InspectorPanelProps) {
               <div className="flex items-center justify-between">
                 <div>
                   <Label className="text-xs text-muted-foreground">
-                    Include in Compile
+                    出力に含める
                   </Label>
                   <p className="text-[10px] text-muted-foreground">
-                    Include this item when exporting
+                    エクスポート時にこのアイテムを含めます
                   </p>
                 </div>
                 <button
@@ -271,7 +271,7 @@ export function InspectorPanel({ projectId }: InspectorPanelProps) {
               <Separator />
 
               <div>
-                <Label className="text-xs text-muted-foreground">Type</Label>
+                <Label className="text-xs text-muted-foreground">種類</Label>
                 <Badge variant="outline" className="mt-1 capitalize">
                   {item.type}
                 </Badge>

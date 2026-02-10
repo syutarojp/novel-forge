@@ -20,8 +20,8 @@ export function CenterPanel({ projectId }: CenterPanelProps) {
       <div className="flex h-full flex-col items-center justify-center gap-4 text-muted-foreground">
         <PenLine className="h-12 w-12 opacity-20" />
         <div className="text-center">
-          <p className="text-lg font-medium">No scene selected</p>
-          <p className="text-sm">Select a scene from the Binder to start writing</p>
+          <p className="text-lg font-medium">シーンが選択されていません</p>
+          <p className="text-sm">バインダーからシーンを選択して執筆を始めましょう</p>
         </div>
       </div>
     );
@@ -36,8 +36,8 @@ export function CenterPanel({ projectId }: CenterPanelProps) {
           <p className="text-lg font-medium">{selectedItem.title}</p>
           <p className="text-sm">
             {selectedItem.type === "folder"
-              ? "Select a scene within this folder to edit"
-              : "Items in the trash"}
+              ? "このフォルダ内のシーンを選択してください"
+              : "ゴミ箱"}
           </p>
         </div>
       </div>

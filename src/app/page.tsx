@@ -55,7 +55,7 @@ export default function HomePage() {
 
   const handleDelete = async (e: React.MouseEvent, projectId: string) => {
     e.stopPropagation();
-    if (confirm("Are you sure you want to delete this project? This cannot be undone.")) {
+    if (confirm("このプロジェクトを削除しますか？この操作は元に戻せません。")) {
       await deleteProject.mutateAsync(projectId);
     }
   };
@@ -67,31 +67,31 @@ export default function HomePage() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">NovelForge</h1>
             <p className="mt-1 text-muted-foreground">
-              Your projects
+              プロジェクト一覧
             </p>
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="mr-2 h-4 w-4" />
-                New Project
+                新規プロジェクト
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Create New Project</DialogTitle>
+                <DialogTitle>新規プロジェクト作成</DialogTitle>
                 <DialogDescription>
-                  Start a new writing project. You can change these settings later.
+                  新しい執筆プロジェクトを始めましょう。設定は後から変更できます。
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="title">Title *</Label>
+                  <Label htmlFor="title">タイトル *</Label>
                   <Input
                     id="title"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="My Novel"
+                    placeholder="私の小説"
                     autoFocus
                     onKeyDown={(e) => {
                       if (e.key === "Enter") handleCreate();
@@ -99,26 +99,26 @@ export default function HomePage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="author">Author</Label>
+                  <Label htmlFor="author">著者</Label>
                   <Input
                     id="author"
                     value={author}
                     onChange={(e) => setAuthor(e.target.value)}
-                    placeholder="Your name"
+                    placeholder="著者名"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="genre">Genre</Label>
+                    <Label htmlFor="genre">ジャンル</Label>
                     <Input
                       id="genre"
                       value={genre}
                       onChange={(e) => setGenre(e.target.value)}
-                      placeholder="Fantasy, Sci-Fi..."
+                      placeholder="ファンタジー、SF..."
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="target">Target Words</Label>
+                    <Label htmlFor="target">目標文字数</Label>
                     <Input
                       id="target"
                       type="number"
@@ -131,10 +131,10 @@ export default function HomePage() {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setDialogOpen(false)}>
-                  Cancel
+                  キャンセル
                 </Button>
                 <Button onClick={handleCreate} disabled={!title.trim()}>
-                  Create Project
+                  作成
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -143,14 +143,14 @@ export default function HomePage() {
 
         {isLoading ? (
           <div className="flex items-center justify-center py-20 text-muted-foreground">
-            Loading projects...
+            プロジェクトを読み込み中...
           </div>
         ) : projects.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <BookOpen className="mb-4 h-16 w-16 text-muted-foreground/30" />
-            <h2 className="text-xl font-semibold">No projects yet</h2>
+            <h2 className="text-xl font-semibold">プロジェクトがありません</h2>
             <p className="mt-2 text-muted-foreground">
-              Create your first project to get started
+              最初のプロジェクトを作成しましょう
             </p>
           </div>
         ) : (
@@ -164,7 +164,7 @@ export default function HomePage() {
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg">{project.title}</CardTitle>
                   {project.author && (
-                    <CardDescription>by {project.author}</CardDescription>
+                    <CardDescription>{project.author}</CardDescription>
                   )}
                 </CardHeader>
                 <CardContent className="pb-2">
