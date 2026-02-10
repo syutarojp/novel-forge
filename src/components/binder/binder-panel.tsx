@@ -127,7 +127,6 @@ export function BinderPanel({ projectId }: BinderPanelProps) {
   const { data: items = [] } = useBinderItems(projectId);
   const { data: project } = useProject(projectId);
   const createItem = useCreateBinderItem();
-  const totalWordCount = useUIStore((s) => s.totalWordCount);
   const binderTab = useUIStore((s) => s.binderTab);
   const setBinderTab = useUIStore((s) => s.setBinderTab);
   const selectedItemId = useUIStore((s) => s.selectedItemId);
@@ -217,7 +216,7 @@ export function BinderPanel({ projectId }: BinderPanelProps) {
                 <BinderTree data={treeData} projectId={projectId} />
               </ScrollArea>
               {selectedItem?.type === "scene" && selectedItemId && (
-                <div className="h-80 overflow-hidden">
+                <div className="h-80 shrink-0 overflow-hidden">
                   <SceneInfoPanel itemId={selectedItemId} projectId={projectId} />
                 </div>
               )}
@@ -232,12 +231,6 @@ export function BinderPanel({ projectId }: BinderPanelProps) {
         </div>
       </Tabs>
 
-      {/* Footer: total word count (manuscript tab only) */}
-      {binderTab === "manuscript" && (
-        <div className="border-t px-3 py-1.5 text-xs text-muted-foreground">
-          合計 {totalWordCount.toLocaleString()} 文字
-        </div>
-      )}
     </div>
   );
 }
