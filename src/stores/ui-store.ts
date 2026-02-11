@@ -48,6 +48,10 @@ interface UIState {
   selectionWordCount: number;
   setSelectionWordCount: (count: number) => void;
 
+  // Section focus (outline click → show only that section)
+  focusedHeadingIndex: number | null;
+  setFocusedHeadingIndex: (index: number | null) => void;
+
   // Editor instance (shared for proofreading etc.)
   editorInstance: Editor | null;
   setEditorInstance: (editor: Editor | null) => void;
@@ -87,6 +91,9 @@ export const useUIStore = create<UIState>((set) => ({
 
   selectionWordCount: 0,
   setSelectionWordCount: (count) => set({ selectionWordCount: count }),
+
+  focusedHeadingIndex: null,
+  setFocusedHeadingIndex: (index) => set({ focusedHeadingIndex: index }),
 
   editorInstance: null,
   setEditorInstance: (editor) => set({ editorInstance: editor }),

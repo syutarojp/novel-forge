@@ -8,6 +8,8 @@ import Placeholder from "@tiptap/extension-placeholder";
 import CharacterCount from "@tiptap/extension-character-count";
 import { Plugin } from "@tiptap/pm/state";
 import { ProofreadingDecoration } from "@/lib/proofreading/decorations";
+import { SectionFocus } from "@/lib/section-focus-extension";
+import type { SectionFocusStorage } from "@/lib/section-focus-extension";
 import { useUIStore } from "@/stores/ui-store";
 import { useProofreadingStore } from "@/stores/proofreading-store";
 import { useManuscriptContent, useUpdateManuscriptContent } from "@/hooks/use-manuscript";
@@ -93,6 +95,7 @@ export function TipTapEditor({ projectId, readOnly = false }: TipTapEditorProps)
       }),
       CharacterCount,
       ProofreadingDecoration,
+      SectionFocus,
       H1Protection,
     ],
     editable: !readOnly,
@@ -155,6 +158,31 @@ export function TipTapEditor({ projectId, readOnly = false }: TipTapEditorProps)
       setEditorInstance(null);
     };
   }, [editor, setEditorInstance]);
+
+  // Sync section focus from store → extension storage
+  const focusedHeadingIndex = useUIStore((s) => s.focusedHeadingIndex);
+  const setFocusedHeadingIndex = useUIStore((s) => s.setFocusedHeadingIndex);
+  useEffect(() => {
+    if (!editor) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const storage = (editor.extensionStorage as any).sectionFocus as SectionFocusStorage | undefined;
+    if (storage) {
+      storage.focusedHeadingIndex = focusedHeadingIndex;
+      editor.view.dispatch(editor.state.tr.setMeta("sectionFocusUpdate", true));
+    }
+  }, [editor, focusedHeadingIndex]);
+
+  // Escape key → clear section focus
+  useEffect(() => {
+    if (!editor) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && focusedHeadingIndex !== null) {
+        setFocusedHeadingIndex(null);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [editor, focusedHeadingIndex, setFocusedHeadingIndex]);
 
   // Sync proofreading issues into the decoration extension
   const proofreadingIssues = useProofreadingStore((s) => s.issues);

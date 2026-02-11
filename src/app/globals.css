@@ -191,6 +191,11 @@
   background-color: var(--accent);
 }
 
+/* Section focus — hide non-focused sections */
+.section-hidden {
+  display: none !important;
+}
+
 /* Selection character count tooltip */
 .selection-count {
   position: fixed;

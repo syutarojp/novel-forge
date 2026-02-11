@@ -69,6 +69,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useUIStore } from "@/stores/ui-store";
 import type { OutlineItem, SectionTrashItem } from "@/types";
 
 const SKIP_CONFIRM_KEY = "novelforge-skip-delete-confirm";
@@ -199,6 +200,7 @@ function ProjectSettingsPopover({
 function H1Row({
   item,
   isActive,
+  isFocused,
   hasChildren,
   isCollapsed,
   projectId,
@@ -208,6 +210,7 @@ function H1Row({
 }: {
   item: OutlineItem;
   isActive: boolean;
+  isFocused: boolean;
   hasChildren: boolean;
   isCollapsed: boolean;
   projectId: string;
@@ -279,6 +282,7 @@ function H1Row({
 function SectionRow({
   item,
   isActive,
+  isFocused,
   hasChildren,
   isCollapsed,
   canMoveUp,
@@ -293,6 +297,7 @@ function SectionRow({
 }: {
   item: OutlineItem;
   isActive: boolean;
+  isFocused: boolean;
   hasChildren: boolean;
   isCollapsed: boolean;
   canMoveUp: boolean;
@@ -330,7 +335,8 @@ function SectionRow({
           isDragging && "opacity-50 bg-accent/30",
           isActive
             ? "border-l-2 border-primary bg-accent/50 text-foreground"
-            : "border-l-2 border-transparent hover:bg-accent/30"
+            : "border-l-2 border-transparent hover:bg-accent/30",
+          isFocused && "ring-1 ring-primary/40 rounded"
         )}
         style={{ paddingLeft: `${indent + 4}px`, paddingRight: "4px" }}
         onClick={() => onScrollTo(item)}
@@ -476,6 +482,8 @@ export function OutlinePanel({ projectId, editor }: OutlinePanelProps) {
   const trashSection = useTrashSection();
   const restoreSection = useRestoreSection();
   const deleteTrashItem = useDeleteTrashItem();
+  const focusedHeadingIndex = useUIStore((s) => s.focusedHeadingIndex);
+  const setFocusedHeadingIndex = useUIStore((s) => s.setFocusedHeadingIndex);
 
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null);
@@ -582,12 +590,14 @@ export function OutlinePanel({ projectId, editor }: OutlinePanelProps) {
   const scrollToHeading = useCallback(
     (item: OutlineItem) => {
       if (!editor) return;
+      // H1 (headingIndex 0) → clear focus (show all); others → focus that section
+      setFocusedHeadingIndex(item.headingIndex === 0 ? null : item.headingIndex);
       const pos = findHeadingPMPosition(editor, item.headingIndex);
       if (pos !== null) {
         editor.chain().setTextSelection(pos + 1).scrollIntoView().run();
       }
     },
-    [editor]
+    [editor, setFocusedHeadingIndex]
   );
 
   const handleMoveUp = useCallback(
@@ -602,29 +612,32 @@ export function OutlinePanel({ projectId, editor }: OutlinePanelProps) {
   const handleLevelUp = useCallback(
     (idx: number) => {
       if (!editor) return;
+      setFocusedHeadingIndex(null);
       const node = findHeadingNode(editor, idx);
       if (node && node.level > 2) changeSectionLevel(editor, idx, node.level - 1);
     },
-    [editor]
+    [editor, setFocusedHeadingIndex]
   );
   const handleLevelDown = useCallback(
     (idx: number) => {
       if (!editor) return;
+      setFocusedHeadingIndex(null);
       const node = findHeadingNode(editor, idx);
       if (node && node.level < 4) changeSectionLevel(editor, idx, node.level + 1);
     },
-    [editor]
+    [editor, setFocusedHeadingIndex]
   );
 
   const performDelete = useCallback(
     (item: OutlineItem) => {
       if (!editor) return;
+      setFocusedHeadingIndex(null);
       const content = extractSectionContent(editor, item.headingIndex);
       if (!content) return;
       trashSection.mutate({ projectId, title: item.title, level: item.level, content: content as never });
       deleteSection(editor, item.headingIndex);
     },
-    [editor, projectId, trashSection]
+    [editor, projectId, trashSection, setFocusedHeadingIndex]
   );
 
   const handleDeleteRequest = useCallback(
@@ -673,8 +686,9 @@ export function OutlinePanel({ projectId, editor }: OutlinePanelProps) {
   );
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
+    setFocusedHeadingIndex(null);
     setActiveDragId(event.active.id as string);
-  }, []);
+  }, [setFocusedHeadingIndex]);
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
@@ -734,6 +748,7 @@ export function OutlinePanel({ projectId, editor }: OutlinePanelProps) {
                 const isCollapsed_ = collapsed[item.id] ?? false;
                 const hasChildren = item.children.length > 0;
                 const isActive = activeHeadingId === item.id;
+                const isFocused = focusedHeadingIndex === item.headingIndex;
 
                 if (item.level === 1) {
                   return (
@@ -741,6 +756,7 @@ export function OutlinePanel({ projectId, editor }: OutlinePanelProps) {
                       key={item.id}
                       item={item}
                       isActive={isActive}
+                      isFocused={isFocused}
                       hasChildren={hasChildren}
                       isCollapsed={isCollapsed_}
                       projectId={projectId}
@@ -756,6 +772,7 @@ export function OutlinePanel({ projectId, editor }: OutlinePanelProps) {
                     key={item.id}
                     item={item}
                     isActive={isActive}
+                    isFocused={isFocused}
                     hasChildren={hasChildren}
                     isCollapsed={isCollapsed_}
                     canMoveUp={hasSiblingAbove(item, siblings)}
