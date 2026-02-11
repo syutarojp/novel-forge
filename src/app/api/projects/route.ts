@@ -43,19 +43,19 @@ export async function POST(request: Request) {
     ],
   };
 
-  // Initial content: a heading and empty paragraph
+  // Initial content: H1 = project title, H2 = first scene
   const initialContent = {
     type: "doc",
     content: [
       {
         type: "heading",
         attrs: { level: 1 },
-        content: [{ type: "text", text: "第一章" }],
+        content: [{ type: "text", text: body.title.trim() }],
       },
       {
         type: "heading",
         attrs: { level: 2 },
-        content: [{ type: "text", text: "無題のシーン" }],
+        content: [{ type: "text", text: "第一章" }],
       },
       {
         type: "paragraph",
